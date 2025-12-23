@@ -1,0 +1,39 @@
+# --- GLOBAL ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+
+# --- DOCKER ---
+docker-compose.override.yml
+
+# --- ENVIRONMENT VARIABLES ---
+.env
+.env.*
+! .env.example
+
+# --- PYTHON ---
+**/__pycache__/
+**/*.py[cod]
+**/.venv/
+**/venv/
+.ipynb_checkpoints/
+
+# --- NODE.JS ---
+**/node_modules/
+**/dist/
+**/build/
+**/coverage/
+npm-debug.log*
+yarn-debug.log*
+
+# --- DATA ---
+data/*.csv
+data/*.pkl
+data/*.h5
+
+!data/.gitkeep
+
+# --- ML-SERVICE DATA ---
+ml-service/data/*
