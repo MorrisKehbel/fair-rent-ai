@@ -1,5 +1,10 @@
-pandas
-numpy
-scikit-learn
-fastapi
-uvicorn
+pandas==2.3.3
+numpy==2.4.0
+scikit-learn==1.8.0
+
+mlflow==2.19.0
+boto3
+s3fs==2025.12.0
+
+fastapi==0.127.0
+uvicorn==0.40.0
