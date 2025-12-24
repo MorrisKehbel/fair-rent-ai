@@ -19,4 +19,21 @@ Consult Docker's [getting started](https://docs.docker.com/go/get-started-sharin
 docs for more detail on building and pushing.
 
 ### References
-* [Docker's Python guide](https://docs.docker.com/language/python/)
+
+- [Docker's Python guide](https://docs.docker.com/language/python/)
+
+### Requirements
+
+.env file
+
+# --- AWS ---
+
+AWS_ACCESS_KEY_ID=
+
+AWS_SECRET_ACCESS_KEY=
+
+AWS_DEFAULT_REGION=
+
+MLFLOW_S3_BUCKET=
+
+# --- AWS ---
