@@ -1,8 +1,10 @@
 import mlflow.sklearn
 import pandas as pd
+import os
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 MODEL_NAME = "Rent_Price_Predictor"
@@ -29,6 +31,16 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(title="Rent Price Predictor API", lifespan=lifespan)
+
+
+# CORS settings
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[os.environ["ALLOWED_ORIGINS"]],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # default values for testing 
