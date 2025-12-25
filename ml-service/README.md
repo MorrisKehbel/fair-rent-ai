@@ -1,28 +1,29 @@
-### Commands
+# ML Service
 
-# --- train new model ---
+## Commands
 
+Train new model:
 docker compose run trainer
 
-### API Endpoints
+## API
 
 POST /predict
 
-### Requirements
+## Environment (.env)
 
-.env file
-
-# --- AWS ---
+### AWS
 
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
 AWS_DEFAULT_REGION=
 MLFLOW_S3_BUCKET=
 
-# --- AWS ---
-
-# --- CONNECTION ---
+### Connection
 
 ALLOWED_ORIGINS=
 
-# --- CONNECTION ---
+### DAGSHUB / MLflow
+
+MLFLOW_TRACKING_URI=
+MLFLOW_TRACKING_USERNAME=
+MLFLOW_TRACKING_PASSWORD=

@@ -13,6 +13,9 @@ from immo_ml import train_model
 MODEL_NAME = "Rent_Price_Predictor"
 
 def main():
+    mlflow_tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
+    if mlflow_tracking_uri:
+        mlflow.set_tracking_uri(mlflow_tracking_uri)
 # Loading Data
     mlflow.set_experiment("Rent_Price_Predictor_V1")
     bucket_uri = os.getenv("MLFLOW_S3_BUCKET")

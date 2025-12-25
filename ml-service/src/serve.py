@@ -14,6 +14,9 @@ model = None
 def load_model_logic():
     global model
 # load the latest registered champion model
+    mlflow_tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
+    if mlflow_tracking_uri:
+        mlflow.set_tracking_uri(mlflow_tracking_uri)
     try:
         model_uri = f"models:/{MODEL_NAME}@champion"
 
