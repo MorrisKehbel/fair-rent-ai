@@ -35,5 +35,6 @@ data/*.h5
 
 !data/.gitkeep
 
-# --- ML-SERVICE DATA ---
-ml-service/data/*
+# MLflow local database
+**/ml-service/backend_store/
+**/ml-service/mlflow.db

@@ -76,7 +76,7 @@ def main():
         print(f"Comparison: New Model({r2:.4f}) vs. Champion Model ({champion_r2:.4f})")
         
         # test if new model is better than champion model --- maybe chabge to other metric or add tolerance later ---
-        if r2 > champion_r2:
+        if r2 > (champion_r2 + 0.01):
             print("New model is better. Updating champion...")
             
             mv = client.search_model_versions(f"run_id='{run.info.run_id}'")[0]
