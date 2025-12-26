@@ -9,6 +9,7 @@ from mlflow.models.signature import infer_signature
 
 from immo_processor import clean_and_score_data
 from immo_ml import train_model
+from immo_log import evaluate_and_log
 
 MODEL_NAME = "Rent_Price_Predictor"
 
@@ -37,17 +38,16 @@ def main():
     
 # Data Cleaning and Preprocessing Features
     df_clean = clean_and_score_data(raw_data)
-    df_clean = df_clean.dropna(subset=['rent_cold'])
-
 
 # Model Training and Logging with MLflow
     with mlflow.start_run() as run:
         mlflow.log_param("num_samples", len(df_clean))
         
         print("Starte Training...")
-        model, r2 = train_model(df_clean)
-        mlflow.log_metric("r2_score", r2)
-        print(f"Training beendet. R2: {r2:.4f}")
+        model, X_test, y_test = train_model(df_clean)
+
+        # evaluate and log metrics and plots
+        metrics = evaluate_and_log(model, X_test, y_test)
 
         # --- create signature ---
         input_example = df_clean.drop(columns=['rent_cold']).iloc[[0]]  # example input for mlflow model signature
@@ -76,10 +76,10 @@ def main():
             champion_r2 = -1.0
             print("No champion model found")
 
-        print(f"Comparison: New Model({r2:.4f}) vs. Champion Model ({champion_r2:.4f})")
+        print(f"Comparison: New Model({metrics['r2_score']:.4f}) vs. Champion Model ({champion_r2:.4f})")
         
         # test if new model is better than champion model --- maybe chabge to other metric or add tolerance later ---
-        if r2 > (champion_r2 + 0.01):
+        if metrics['r2_score'] > (champion_r2 + 0.01):
             print("New model is better. Updating champion...")
             
             mv = client.search_model_versions(f"run_id='{run.info.run_id}'")[0]

@@ -82,4 +82,14 @@ def clean_and_score_data(raw_json_data):
         if col in df_ml.columns:
             df_ml[col] = pd.to_numeric(df_ml[col], errors='coerce')
 
+    # filter outliers
+    df_ml = df_ml[(df_ml['rent_cold'] > 200) & (df_ml['rent_cold'] < 4000)]
+    
+    df_ml = df_ml[(df_ml['size'] > 15) & (df_ml['size'] < 300)]
+    
+    price_per_sqm = df_ml['rent_cold'] / df_ml['size']
+    df_ml = df_ml[(price_per_sqm > 3.0) & (price_per_sqm < 35.0)]
+
+    df_ml = df_ml.dropna(subset=['rent_cold'])
+
     return df_ml
