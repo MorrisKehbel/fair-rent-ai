@@ -1,10 +1,18 @@
 import type { Metadata } from "next";
+import { Manrope } from "next/font/google";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AI RENT PREDICTOR",
-  description: "Predict fair rental prices using AI",
+  title: "Der faire Mietpreis-Check",
+  description:
+    "Nutze modernstes Machine Learning, um den wahren Wert einer Wohnung zu ermitteln.",
 };
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-manrope",
+});
 
 export default function RootLayout({
   children,
@@ -13,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className={`${manrope.className} antialiased`}>{children}</body>
     </html>
   );
 }
