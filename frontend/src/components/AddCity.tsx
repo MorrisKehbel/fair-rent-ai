@@ -132,12 +132,21 @@ export const AddCity = ({
       className="flex flex-col gap-4 justify-between h-full mt-4 md:mt-0"
     >
       <div className="flex flex-col gap-3">
-        <label>
-          <span className="text-sm md:text-base font-semibold">
-            Postleitzahl
-          </span>
+        <label
+          htmlFor="zip_code_input"
+          className="flex flex-col justify-between"
+        >
+          <div className="flex flex-wrap justify-between items-baseline h-full">
+            <span className="text-sm md:text-base font-semibold">
+              Postleitzahl
+            </span>
+            <span className="text-red-600 text-[10px] md:text-xs whitespace-nowrap mt-auto">
+              {formErrors?.zip_code}
+            </span>
+          </div>
           <input
             name="zip_code"
+            id="zip_code_input"
             type="text"
             inputMode="numeric"
             value={formData.zip_code}
@@ -147,10 +156,21 @@ export const AddCity = ({
             }`}
           />
         </label>
-        <label>
-          <span className="text-sm md:text-base font-semibold">Stadtname</span>
+        <label
+          htmlFor="city_name_input"
+          className="flex flex-col justify-between"
+        >
+          <div className="flex flex-wrap justify-between items-baseline h-full">
+            <span className="text-sm md:text-base font-semibold">
+              Stadtname
+            </span>
+            <span className="text-red-600 text-[10px] md:text-xs whitespace-nowrap mt-auto">
+              {formErrors?.city_name}
+            </span>
+          </div>
           <input
             name="city_name"
+            id="city_name_input"
             type="text"
             inputMode="text"
             value={formData.city_name}
