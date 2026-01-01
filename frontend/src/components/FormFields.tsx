@@ -179,15 +179,10 @@ export const FormFields = ({
           advancedMode ? "grid-cols-2" : "grid-cols-1"
         }`}
       >
-        <label htmlFor="size_input" className="flex flex-col justify-between">
-          <div className="flex flex-wrap justify-between items-baseline h-full">
-            <span className="text-sm md:text-base font-semibold">
-              Wohnfläche (m²)
-            </span>
-            <span className="text-red-600 text-[10px] md:text-xs whitespace-nowrap mt-auto">
-              {formErrors?.size}
-            </span>
-          </div>
+        <label className="flex flex-col justify-between">
+          <span className="text-sm md:text-base font-semibold">
+            Wohnfläche (m²)
+          </span>
           <input
             name="size"
             id="size_input"
@@ -201,14 +196,8 @@ export const FormFields = ({
             placeholder="60"
           />
         </label>
-        <label htmlFor="rooms_input" className="flex flex-col justify-between">
-          <div className="flex flex-wrap justify-between items-baseline h-full">
-            <span className="text-sm md:text-base font-semibold">Zimmer</span>
-            <span className="text-red-600 text-[10px] md:text-xs whitespace-nowrap mt-auto">
-              {formErrors?.rooms}
-            </span>
-          </div>
-
+        <label className="flex flex-col justify-between">
+          <span className="text-sm md:text-base font-semibold">Zimmer</span>
           <input
             name="rooms"
             id="rooms_input"
@@ -222,24 +211,16 @@ export const FormFields = ({
             placeholder="2"
           />
         </label>
-        <label
-          htmlFor="zip_code_input"
-          className="flex flex-col justify-between"
-        >
-          <div className="flex flex-wrap justify-between items-baseline h-full">
-            <div className="flex flex-wrap items-baseline">
-              <span className="text-sm md:text-base font-semibold mr-2 md:mr-0">
-                Postleitzahl
-              </span>
-              <button
-                className="md:px-2 text-[10px] md:text-xs text-gray-400 hover:text-blue-500 cursor-pointer whitespace-nowrap"
-                onClick={() => setCityWindowOpen(true)}
-              >
-                Nicht vorhanden?
-              </button>
-            </div>
-            <span className="text-red-600 text-[10px] md:text-xs whitespace-nowrap mt-auto">
-              {formErrors?.zip_code}
+        <label className="flex flex-col justify-between">
+          <div className="flex flex-wrap items-baseline">
+            <span className="text-sm md:text-base font-semibold mr-2 md:mr-0">
+              Postleitzahl
+            </span>
+            <span
+              className="md:px-2 text-xs text-gray-400 hover:text-blue-500 cursor-pointer"
+              onClick={() => setCityWindowOpen(true)}
+            >
+              Nicht vorhanden?
             </span>
           </div>
 
@@ -258,16 +239,8 @@ export const FormFields = ({
           />
         </label>
 
-        <label
-          htmlFor="year_constructed_input"
-          className="flex flex-col justify-between"
-        >
-          <div className="flex flex-wrap justify-between items-baseline h-full">
-            <span className="text-sm md:text-base font-semibold">Baujahr</span>
-            <span className="text-red-600 text-[10px] md:text-xs whitespace-nowrap mt-auto">
-              {formErrors?.year_constructed}
-            </span>
-          </div>
+        <label className="flex flex-col justify-between">
+          <span className="text-sm md:text-base font-semibold">Baujahr</span>
           <input
             name="year_constructed"
             id="year_constructed_input"
@@ -287,13 +260,14 @@ export const FormFields = ({
         {advancedMode && (
           <>
             <div className="flex flex-wrap justify-between gap-2">
-              <div className="flex items-center justify-between w-full">
-                <label
-                  htmlFor="custom-check-balcony"
-                  className="text-sm md:text-base font-semibold"
-                >
+              <label
+                className="w-full flex items-center justify-between cursor-pointer"
+                htmlFor="custom-check-balcony"
+              >
+                <span className="text-sm md:text-base font-semibold">
                   Balkon/Terrasse:
-                </label>
+                </span>
+
                 <div className="relative flex items-center">
                   <input
                     name="has_balcony"
@@ -318,14 +292,15 @@ export const FormFields = ({
                     </svg>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center justify-between w-full">
-                <label
-                  htmlFor="custom-check-kitchen"
-                  className="text-sm md:text-base font-semibold"
-                >
+              </label>
+              <label
+                className="w-full flex items-center justify-between cursor-pointer"
+                htmlFor="custom-check-kitchen"
+              >
+                <span className="text-sm md:text-base font-semibold">
                   Einbauküche:
-                </label>
+                </span>
+
                 <div className="relative flex items-center">
                   <input
                     name="has_kitchen"
@@ -353,13 +328,14 @@ export const FormFields = ({
               </div>
             </div>
             <div className="flex flex-wrap justify-between gap-2">
-              <div className="flex items-center justify-between w-full">
-                <label
-                  htmlFor="custom-check-elevator"
-                  className="text-sm md:text-base font-semibold"
-                >
+              <label
+                className="w-full flex items-center justify-between cursor-pointer"
+                htmlFor="custom-check-elevator"
+              >
+                <span className="text-sm md:text-base font-semibold">
                   Personenaufzug:
-                </label>
+                </span>
+
                 <div className="relative flex items-center">
                   <input
                     name="has_elevator"
@@ -384,14 +360,15 @@ export const FormFields = ({
                     </svg>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center justify-between w-full">
-                <label
-                  htmlFor="custom-check-garage"
-                  className="text-sm md:text-base font-semibold"
-                >
+              </label>
+              <label
+                className="w-full flex items-center justify-between cursor-pointer"
+                htmlFor="custom-check-garage"
+              >
+                <span className="text-sm md:text-base font-semibold">
                   Garage/Stellplatz:
-                </label>
+                </span>
+
                 <div className="relative flex items-center">
                   <input
                     name="has_garage"
