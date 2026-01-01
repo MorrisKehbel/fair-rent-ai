@@ -126,7 +126,9 @@ export const AddCity = ({
     >
       <div className="flex flex-col gap-3">
         <label>
-          <span className="font-semibold">Postleitzahl</span>
+          <span className="text-sm md:text-base font-semibold">
+            Postleitzahl
+          </span>
           <input
             name="zip_code"
             type="text"
@@ -139,7 +141,7 @@ export const AddCity = ({
           />
         </label>
         <label>
-          <span className="font-semibold">Stadtname</span>
+          <span className="text-sm md:text-base font-semibold">Stadtname</span>
           <input
             name="city_name"
             type="text"

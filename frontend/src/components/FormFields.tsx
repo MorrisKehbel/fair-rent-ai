@@ -186,14 +186,19 @@ export const FormFields = ({
   };
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col justify-between h-full">
+    <form
+      onSubmit={onSubmit}
+      className="flex flex-col justify-between h-full mt-4 md:mt-0"
+    >
       <div
         className={`w-full grid gap-3 content-start ${
           advancedMode ? "grid-cols-2" : "grid-cols-1"
         }`}
       >
-        <label>
-          <span className="font-semibold">Wohnfläche (m²)</span>
+        <label className="flex flex-col justify-between">
+          <span className="text-sm md:text-base font-semibold">
+            Wohnfläche (m²)
+          </span>
           <input
             name="size"
             type="text"
@@ -209,8 +214,8 @@ export const FormFields = ({
             placeholder="60"
           />
         </label>
-        <label>
-          <span className="font-semibold">Zimmer</span>
+        <label className="flex flex-col justify-between">
+          <span className="text-sm md:text-base font-semibold">Zimmer</span>
           <input
             name="rooms"
             type="text"
@@ -226,14 +231,19 @@ export const FormFields = ({
             placeholder="2"
           />
         </label>
-        <label>
-          <span className="font-semibold">Postleitzahl</span>
-          <span
-            className="px-2 text-xs text-gray-400 hover:text-blue-500 cursor-pointer"
-            onClick={() => setCityWindowOpen(true)}
-          >
-            Nicht vorhanden?
-          </span>
+        <label className="flex flex-col justify-between">
+          <div className="flex flex-wrap items-baseline">
+            <span className="text-sm md:text-base font-semibold mr-2 md:mr-0">
+              Postleitzahl
+            </span>
+            <span
+              className="md:px-2 text-xs text-gray-400 hover:text-blue-500 cursor-pointer"
+              onClick={() => setCityWindowOpen(true)}
+            >
+              Nicht vorhanden?
+            </span>
+          </div>
+
           <input
             name="zip_code"
             type="text"
@@ -251,8 +261,8 @@ export const FormFields = ({
           />
         </label>
 
-        <label>
-          <span className="font-semibold">Baujahr</span>
+        <label className="flex flex-col justify-between">
+          <span className="text-sm md:text-base font-semibold">Baujahr</span>
           <input
             name="year_constructed"
             type="text"
@@ -271,12 +281,14 @@ export const FormFields = ({
         </label>
         {advancedMode && (
           <>
-            <div className="flex gap-22">
+            <div className="flex flex-wrap justify-between gap-2">
               <label
-                className="flex items-center cursor-pointer"
+                className="w-full flex items-center justify-between cursor-pointer"
                 htmlFor="custom-check-balcony"
               >
-                <span className="font-semibold mr-3">Balkon/Terrasse:</span>
+                <span className="text-sm md:text-base font-semibold">
+                  Balkon/Terrasse:
+                </span>
 
                 <div className="relative flex items-center">
                   <input
@@ -304,10 +316,12 @@ export const FormFields = ({
                 </div>
               </label>
               <label
-                className="flex items-center cursor-pointer"
+                className="w-full flex items-center justify-between cursor-pointer"
                 htmlFor="custom-check-kitchen"
               >
-                <span className="font-semibold mr-3">Einbauküche:</span>
+                <span className="text-sm md:text-base font-semibold">
+                  Einbauküche:
+                </span>
 
                 <div className="relative flex items-center">
                   <input
@@ -336,12 +350,14 @@ export const FormFields = ({
                 </div>
               </label>
             </div>
-            <div className="flex gap-22">
+            <div className="flex flex-wrap justify-between gap-2">
               <label
-                className="flex items-center cursor-pointer"
+                className="w-full flex items-center justify-between cursor-pointer"
                 htmlFor="custom-check-elevator"
               >
-                <span className="font-semibold mr-3">Personenaufzug:</span>
+                <span className="text-sm md:text-base font-semibold">
+                  Personenaufzug:
+                </span>
 
                 <div className="relative flex items-center">
                   <input
@@ -370,10 +386,12 @@ export const FormFields = ({
                 </div>
               </label>
               <label
-                className="flex items-center cursor-pointer"
+                className="w-full flex items-center justify-between cursor-pointer"
                 htmlFor="custom-check-garage"
               >
-                <span className="font-semibold mr-3">Garage/Stellplatz:</span>
+                <span className="text-sm md:text-base font-semibold">
+                  Garage/Stellplatz:
+                </span>
 
                 <div className="relative flex items-center">
                   <input

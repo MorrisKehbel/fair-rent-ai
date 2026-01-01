@@ -68,7 +68,7 @@ export const InfoPopup = ({ championData, loading }: InfoPopupProps) => {
                   v23
                 </span>
               ) : (
-                <span className=" text-blue-600 text-[10px] font-bold rounded-md">
+                <span className=" text-blue-600 text-[10px] font-bold">
                   v{championData?.model_version}
                 </span>
               )}
@@ -138,10 +138,10 @@ export const InfoPopup = ({ championData, loading }: InfoPopupProps) => {
                 ? [...Array(5)].map((_, index) => (
                     <div key={index} className="relative">
                       <div className="flex justify-between text-xs mb-0.5">
-                        <span className="bg-blue-600/10 text-transparent rounded animate-pulse font-medium">
+                        <span className="bg-blue-600/10 text-transparent rounded-md animate-pulse font-medium">
                           Platzhalter Text
                         </span>
-                        <span className="bg-blue-600/10 text-transparent rounded animate-pulse">
+                        <span className="bg-blue-600/10 text-transparent rounded-md animate-pulse">
                           99%
                         </span>
                       </div>
