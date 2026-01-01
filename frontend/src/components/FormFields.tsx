@@ -185,8 +185,6 @@ export const FormFields = ({
     }));
   };
 
-  console.log(formData);
-
   return (
     <form onSubmit={onSubmit} className="flex flex-col justify-between h-full">
       <div

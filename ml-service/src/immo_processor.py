@@ -90,6 +90,8 @@ def clean_and_score_data(raw_json_data):
     price_per_sqm = df_ml['rent_cold'] / df_ml['size']
     df_ml = df_ml[(price_per_sqm > 3.0) & (price_per_sqm < 35.0)]
 
+    df_ml = df_ml[(df_ml['year_constructed'] > 1900)]
+
     df_ml = df_ml.dropna(subset=['rent_cold'])
 
     return df_ml
