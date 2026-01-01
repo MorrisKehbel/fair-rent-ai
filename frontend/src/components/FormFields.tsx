@@ -8,6 +8,12 @@ interface FormFieldsProps {
   setCityWindowOpen: (value: boolean) => void;
 }
 
+interface FormErrors {
+  size?: string;
+  rooms?: string;
+  zip_code?: string;
+  year_constructed?: string;
+}
 export const FormFields = ({
   advancedMode,
   setError,
@@ -15,12 +21,7 @@ export const FormFields = ({
   setCityWindowOpen,
 }: FormFieldsProps) => {
   const [loading, setLoading] = useState<boolean>(false);
-  const [formErrors, setFormErrors] = useState({
-    size: false,
-    rooms: false,
-    zip_code: false,
-    year_constructed: false,
-  });
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [formData, setFormData] = useState({
     size: "",
     rooms: "",
@@ -38,54 +39,37 @@ export const FormFields = ({
     setError(null);
     setResult(null);
 
-    if (parseInt(formData.size) < 10) {
-      setFormErrors((prev) => ({
-        ...prev,
-        size: true,
-      }));
-      return;
-    } else {
-      setFormErrors((prev) => ({
-        ...prev,
-        size: false,
-      }));
-    }
-
-    if (parseInt(formData.rooms) < 1) {
-      setFormErrors((prev) => ({
-        ...prev,
-        rooms: true,
-      }));
-      return;
-    } else {
-      setFormErrors((prev) => ({
-        ...prev,
-        rooms: false,
-      }));
-    }
-
+    const newErrors: FormErrors = {};
     const currentYear = new Date().getFullYear();
-    const inputYear = parseInt(formData.year_constructed);
 
-    if (inputYear <= 1600 || inputYear > currentYear) {
-      setFormErrors((prev) => ({
-        ...prev,
-        year_constructed: true,
-      }));
-      return;
-    } else {
-      setFormErrors((prev) => ({
-        ...prev,
-        year_constructed: false,
-      }));
+    // validation
+    if (!formData.size || parseInt(formData.size) < 10) {
+      newErrors.size = "Größe muss mind. 10 m² sein.";
     }
 
-    setFormErrors({
-      size: false,
-      rooms: false,
-      zip_code: false,
-      year_constructed: false,
-    });
+    if (!formData.rooms || parseInt(formData.rooms) < 1) {
+      newErrors.rooms = "Mindestens 1 Zimmer erforderlich.";
+    }
+
+    if (!formData.zip_code || formData.zip_code.length < 5) {
+      newErrors.zip_code = "PLZ muss 5-stellig sein.";
+    }
+
+    const inputYear = parseInt(formData.year_constructed);
+    if (
+      !formData.year_constructed ||
+      inputYear <= 1600 ||
+      inputYear > currentYear
+    ) {
+      newErrors.year_constructed = "Bitte ein gültiges Baujahr angeben.";
+    }
+
+    setFormErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      // console.log("Validierung fehlgeschlagen:", newErrors);
+      return;
+    }
 
     setLoading(true);
 
@@ -201,15 +185,13 @@ export const FormFields = ({
           </span>
           <input
             name="size"
+            id="size_input"
             type="text"
             inputMode="numeric"
             value={formData.size}
             onChange={handleChange}
-            required
             className={`mt-1 w-full rounded bg-gray-600/10 ${
-              formErrors.size
-                ? "border-red-500 animate-pulse"
-                : "border-gray-600/50"
+              formErrors.size ? "border-red-600/80" : "border-gray-600/50"
             }  shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
             placeholder="60"
           />
@@ -218,15 +200,13 @@ export const FormFields = ({
           <span className="text-sm md:text-base font-semibold">Zimmer</span>
           <input
             name="rooms"
+            id="rooms_input"
             type="text"
             inputMode="numeric"
             value={formData.rooms}
             onChange={handleChange}
-            required
             className={`mt-1 w-full rounded bg-gray-600/10 ${
-              formErrors.rooms
-                ? "border-red-500 animate-pulse"
-                : "border-gray-600/50"
+              formErrors.rooms ? "border-red-600/80" : "border-gray-600/50"
             }  shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
             placeholder="2"
           />
@@ -246,17 +226,15 @@ export const FormFields = ({
 
           <input
             name="zip_code"
+            id="zip_code_input"
             type="text"
             inputMode="numeric"
             minLength={5}
             value={formData.zip_code}
             onChange={handleChange}
-            required
             placeholder="04103"
             className={`mt-1 w-full rounded bg-gray-600/10 ${
-              formErrors.zip_code
-                ? "border-red-500 animate-pulse"
-                : "border-gray-600/50"
+              formErrors.zip_code ? "border-red-600/80" : "border-gray-600/50"
             }  shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
           />
         </label>
@@ -265,16 +243,16 @@ export const FormFields = ({
           <span className="text-sm md:text-base font-semibold">Baujahr</span>
           <input
             name="year_constructed"
+            id="year_constructed_input"
             type="text"
             inputMode="numeric"
             minLength={4}
             value={formData.year_constructed}
             onChange={handleChange}
-            required
             placeholder="1990"
             className={`mt-1 w-full rounded bg-gray-600/10 ${
               formErrors.year_constructed
-                ? "border-red-500 animate-pulse"
+                ? "border-red-600/80"
                 : "border-gray-600/50"
             }  shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
           />
@@ -332,7 +310,6 @@ export const FormFields = ({
                     onChange={handleChange}
                     className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-400 transition-all checked:border-blue-500 checked:bg-blue-500 hover:scale-105 shadow-sm"
                   />
-
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -348,7 +325,7 @@ export const FormFields = ({
                     </svg>
                   </div>
                 </div>
-              </label>
+              </div>
             </div>
             <div className="flex flex-wrap justify-between gap-2">
               <label
@@ -368,7 +345,6 @@ export const FormFields = ({
                     onChange={handleChange}
                     className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-400 transition-all checked:border-blue-500 checked:bg-blue-500 hover:scale-105 shadow-sm"
                   />
-
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -402,7 +378,6 @@ export const FormFields = ({
                     onChange={handleChange}
                     className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-400 transition-all checked:border-blue-500 checked:bg-blue-500 hover:scale-105 shadow-sm"
                   />
-
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -418,7 +393,7 @@ export const FormFields = ({
                     </svg>
                   </div>
                 </div>
-              </label>
+              </div>
             </div>
           </>
         )}

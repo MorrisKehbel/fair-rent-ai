@@ -40,7 +40,7 @@ export const FormWindow = () => {
   };
 
   return (
-    <div className="flex flex-col mx-auto w-full md:w-180 2xl:w-220">
+    <div className="flex flex-col mx-auto w-full md:w-190 2xl:w-220">
       <div className="relative p-2 w-full backdrop-blur-xs backdrop-grayscale bg-linear-to-b from-gray-900/20 via-black/20 to-gray-900/20 rounded-3xl shadow border border-gray-950/30">
         {infoWindowOpen && (
           <InfoPopup championData={championData} loading={loading} />
