@@ -15,7 +15,7 @@ export const FormWindow = () => {
   const [loading, setLoading] = useState<boolean>(false);
 
   const handleLoadClick = async () => {
-    if (championData) return;
+    if (loading || championData) return;
 
     setLoading(true);
     setError(null);
@@ -45,7 +45,7 @@ export const FormWindow = () => {
         {infoWindowOpen && (
           <InfoPopup championData={championData} loading={loading} />
         )}
-        <div className="flex flex-col px-6 pb-6 h-108 bg-black/80 rounded-2xl">
+        <div className="flex flex-col px-4 md:px-6 pb-4 md:pb-6 h-108 bg-black/80 rounded-2xl">
           <div className="self-end space-x-2">
             <button
               onClick={() => setAdvancedMode((prev) => !prev)}
