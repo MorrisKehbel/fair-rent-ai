@@ -8,6 +8,11 @@ interface FormFieldsProps {
   setResult: (value: string | null) => void;
 }
 
+interface FormErrors {
+  zip_code?: string;
+  city_name?: string;
+}
+
 export const AddCity = ({
   setCityWindowOpen,
   setResult,
@@ -17,10 +22,7 @@ export const AddCity = ({
     zip_code: "",
     city_name: "",
   });
-  const [formErrors, setFormErrors] = useState({
-    zip_code: false,
-    city_name: false,
-  });
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState<boolean>(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,18 +54,23 @@ export const AddCity = ({
     setError(null);
     setResult(null);
 
-    if (formData.city_name.length < 3) {
-      setFormErrors((prev) => ({
-        ...prev,
-        city_name: true,
-      }));
-      return;
+    // validation
+    const newErrors: FormErrors = {};
+
+    if (!formData.zip_code || formData.zip_code.length < 5) {
+      newErrors.zip_code = "PLZ muss 5-stellig sein.";
     }
 
-    setFormErrors({
-      zip_code: false,
-      city_name: false,
-    });
+    if (!formData.city_name || formData.city_name.length < 3) {
+      newErrors.city_name = "Stadtname muss mindestens 3 Zeichen lang sein.";
+    }
+
+    setFormErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      // console.log("Validierung fehlgeschlagen:", newErrors);
+      return;
+    }
 
     setLoading(true);
 
@@ -122,37 +129,46 @@ export const AddCity = ({
   return (
     <form
       onSubmit={onSubmit}
-      className="flex flex-col gap-4 justify-between h-full"
+      className="flex flex-col gap-4 justify-between h-full mt-4 md:mt-0"
     >
       <div className="flex flex-col gap-3">
-        <label>
-          <span className="text-sm md:text-base font-semibold">
-            Postleitzahl
-          </span>
+        <label className="flex flex-col justify-between">
+          <div className="flex flex-wrap justify-between items-baseline h-full">
+            <span className="text-sm md:text-base font-semibold">
+              Postleitzahl
+            </span>
+            <span className="text-red-600 text-[10px] md:text-xs whitespace-nowrap mt-auto">
+              {formErrors?.zip_code}
+            </span>
+          </div>
           <input
             name="zip_code"
             type="text"
             inputMode="numeric"
             value={formData.zip_code}
             onChange={handleChange}
-            minLength={5}
-            required
-            className="mt-1 w-full rounded bg-gray-600/10 border-gray-600/50 shadow-inner border p-2 focus:outline focus:outline-blue-600"
+            className={`mt-1 w-full rounded bg-gray-600/10 shadow-inner border p-2 focus:outline focus:outline-blue-600 select-non ${
+              formErrors.zip_code ? "border-red-600/80" : "border-gray-600/50"
+            }`}
           />
         </label>
-        <label>
-          <span className="text-sm md:text-base font-semibold">Stadtname</span>
+        <label className="flex flex-col justify-between">
+          <div className="flex flex-wrap justify-between items-baseline h-full">
+            <span className="text-sm md:text-base font-semibold">
+              Stadtname
+            </span>
+            <span className="text-red-600 text-[10px] md:text-xs whitespace-nowrap mt-auto">
+              {formErrors?.city_name}
+            </span>
+          </div>
           <input
             name="city_name"
             type="text"
-            inputMode="numeric"
+            inputMode="text"
             value={formData.city_name}
             onChange={handleChange}
-            required
             className={`mt-1 w-full rounded bg-gray-600/10 shadow-inner border p-2 focus:outline focus:outline-blue-600 select-non ${
-              formErrors.city_name
-                ? "border-red-500 animate-pulse"
-                : "border-gray-600/50"
+              formErrors.city_name ? "border-red-600/80" : "border-gray-600/50"
             }`}
           />
         </label>
