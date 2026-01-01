@@ -151,8 +151,8 @@ export const AddCity = ({
             inputMode="numeric"
             value={formData.zip_code}
             onChange={handleChange}
-            className={`mt-1 w-full rounded bg-gray-600/10 shadow-inner border p-2 focus:outline focus:outline-blue-600 select-non ${
-              formErrors.zip_code ? "border-red-600/80" : "border-gray-600/50"
+            className={`mt-1 w-full rounded bg-gray-600/10 shadow-inner border p-2 focus:outline focus:outline-blue-600 select-non border-gray-600/50 ${
+              formErrors.zip_code ? "outline outline-red-600/80" : ""
             }`}
           />
         </label>
@@ -175,8 +175,8 @@ export const AddCity = ({
             inputMode="text"
             value={formData.city_name}
             onChange={handleChange}
-            className={`mt-1 w-full rounded bg-gray-600/10 shadow-inner border p-2 focus:outline focus:outline-blue-600 select-non ${
-              formErrors.city_name ? "border-red-600/80" : "border-gray-600/50"
+            className={`mt-1 w-full rounded bg-gray-600/10 shadow-inner border p-2 focus:outline focus:outline-blue-600 select-non border-gray-600/50 ${
+              formErrors.city_name ? "outline outline-red-600/80" : ""
             }`}
           />
         </label>

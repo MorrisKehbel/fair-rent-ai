@@ -64,7 +64,7 @@ export const InfoPopup = ({ championData, loading }: InfoPopupProps) => {
                 </h3>
               </div>
               {loading ? (
-                <span className="bg-blue-600/20 text-[10px] text-transparent font-bold rounded-md animate-pulse">
+                <span className="bg-blue-600/20 text-[10px] text-transparent font-bold rounded-md animate-pulse select-none">
                   v23
                 </span>
               ) : (
@@ -78,7 +78,7 @@ export const InfoPopup = ({ championData, loading }: InfoPopupProps) => {
                 Champion Model
               </p>
               {loading ? (
-                <p className="bg-blue-600/10 text-[10px] text-transparent rounded-md animate-pulse">
+                <p className="bg-blue-600/10 text-[10px] text-transparent rounded-md animate-pulse select-none">
                   01.01.2025
                 </p>
               ) : (
@@ -100,7 +100,7 @@ export const InfoPopup = ({ championData, loading }: InfoPopupProps) => {
                 Genauigkeit (R²)
               </span>
               {loading ? (
-                <span className="bg-blue-600/10 text-lg font-bold text-transparent rounded-md animate-pulse">
+                <span className="bg-blue-600/10 text-lg font-bold text-transparent rounded-md animate-pulse select-none">
                   99.9 %
                 </span>
               ) : (
@@ -117,7 +117,7 @@ export const InfoPopup = ({ championData, loading }: InfoPopupProps) => {
                 Ø Abweichung
               </span>
               {loading ? (
-                <span className="bg-blue-600/10 text-lg font-bold text-transparent rounded-md animate-pulse">
+                <span className="bg-blue-600/10 text-lg font-bold text-transparent rounded-md animate-pulse select-none">
                   ±100€
                 </span>
               ) : (
@@ -138,16 +138,16 @@ export const InfoPopup = ({ championData, loading }: InfoPopupProps) => {
                 ? [...Array(5)].map((_, index) => (
                     <div key={index} className="relative">
                       <div className="flex justify-between text-xs mb-0.5">
-                        <span className="bg-blue-600/10 text-transparent rounded-md animate-pulse font-medium">
+                        <span className="bg-blue-600/10 text-transparent rounded-md animate-pulse select-none font-medium">
                           Platzhalter Text
                         </span>
-                        <span className="bg-blue-600/10 text-transparent rounded-md animate-pulse">
+                        <span className="bg-blue-600/10 text-transparent rounded-md animate-pulse select-none">
                           99%
                         </span>
                       </div>
                       <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
                         <div
-                          className="bg-indigo-500/50 h-1.5 rounded-full animate-pulse"
+                          className="bg-indigo-500/50 h-1.5 rounded-full animate-pulse select-none"
                           style={{ width: "60%" }}
                         ></div>
                       </div>
