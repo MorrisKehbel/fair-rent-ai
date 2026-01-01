@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { FormFields, AddCity, InfoPopup } from "./index";
+import { ChampionData } from "@/types/modelTypes";
 
 export const FormWindow = () => {
   const [result, setResult] = useState<string | null>(null);
@@ -10,10 +11,40 @@ export const FormWindow = () => {
   const [infoWindowOpen, setInfoWindowOpen] = useState<boolean>(false);
   const [cityWindowOpen, setCityWindowOpen] = useState<boolean>(false);
 
+  const [championData, setChampionData] = useState<ChampionData | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const handleLoadClick = async () => {
+    if (championData) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/model-info`
+      );
+      if (!response.ok) throw new Error("Fehler beim Laden der Informationen");
+
+      const data = await response.json();
+
+      setChampionData(data);
+    } catch (error) {
+      const message = (error as Error).message;
+      setInfoWindowOpen(false);
+      setResult(null);
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col mx-auto w-full md:w-180 lg:w-240">
+    <div className="flex flex-col mx-auto w-full md:w-180 2xl:w-220">
       <div className="relative p-2 w-full backdrop-blur-xs backdrop-grayscale bg-linear-to-b from-gray-900/20 via-black/20 to-gray-900/20 rounded-3xl shadow border border-gray-950/30">
-        {infoWindowOpen && <InfoPopup setInfoWindowOpen={setInfoWindowOpen} />}
+        {infoWindowOpen && (
+          <InfoPopup championData={championData} loading={loading} />
+        )}
         <div className="flex flex-col px-6 pb-6 h-108 bg-black/80 rounded-2xl">
           <div className="self-end space-x-2">
             <button
@@ -25,7 +56,10 @@ export const FormWindow = () => {
               {advancedMode ? "basic" : "advanced"}
             </button>
             <button
-              onClick={() => setInfoWindowOpen((prev) => !prev)}
+              onClick={() => {
+                setInfoWindowOpen((prev) => !prev);
+                handleLoadClick();
+              }}
               className={`${
                 infoWindowOpen
                   ? "bg-blue-600/30 text-white hover:bg-blue-700/30 hover:text-gray-400"
