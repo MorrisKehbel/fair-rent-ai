@@ -195,8 +195,8 @@ export const FormFields = ({
             inputMode="numeric"
             value={formData.size}
             onChange={handleChange}
-            className={`mt-1 w-full rounded bg-gray-600/10 ${
-              formErrors.size ? "border-red-600/80" : "border-gray-600/50"
+            className={`mt-1 w-full rounded bg-gray-600/10 border-gray-600/50 ${
+              formErrors.size ? "outline outline-red-600/80" : ""
             }  shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
             placeholder="60"
           />
@@ -216,8 +216,8 @@ export const FormFields = ({
             inputMode="numeric"
             value={formData.rooms}
             onChange={handleChange}
-            className={`mt-1 w-full rounded bg-gray-600/10 ${
-              formErrors.rooms ? "border-red-600/80" : "border-gray-600/50"
+            className={`mt-1 w-full rounded bg-gray-600/10 border-gray-600/50 ${
+              formErrors.rooms ? "outline outline-red-600/80" : ""
             }  shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
             placeholder="2"
           />
@@ -252,8 +252,8 @@ export const FormFields = ({
             value={formData.zip_code}
             onChange={handleChange}
             placeholder="04103"
-            className={`mt-1 w-full rounded bg-gray-600/10 ${
-              formErrors.zip_code ? "border-red-600/80" : "border-gray-600/50"
+            className={`mt-1 w-full rounded bg-gray-600/10 border-gray-600/50 ${
+              formErrors.zip_code ? "outline outline-red-600/80" : ""
             }  shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
           />
         </label>
@@ -277,10 +277,8 @@ export const FormFields = ({
             value={formData.year_constructed}
             onChange={handleChange}
             placeholder="1990"
-            className={`mt-1 w-full rounded bg-gray-600/10 ${
-              formErrors.year_constructed
-                ? "border-red-600/80"
-                : "border-gray-600/50"
+            className={`mt-1 w-full rounded bg-gray-600/10 border-gray-600/50 ${
+              formErrors.year_constructed ? "outline outline-red-600/80" : ""
             }  shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
           />
         </label>
