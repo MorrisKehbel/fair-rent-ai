@@ -1,6 +1,12 @@
 import { FormWindow } from "@/components/index";
+import { createClient } from "@/utils/supabase/server";
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("fairrentpredictor_data_status")
+    .select("*");
+
   return (
     <main className="flex flex-col min-h-dvh text-white w-full justify-center p-2">
       <h1 className="mt-6 font-bold text-center text-4xl sm:text-5xl md:text-6xl lg:text-7xl drop-shadow">
@@ -11,7 +17,7 @@ export default function Home() {
         ermitteln.
       </h2>
       <div className="mt-8 md:mt-12">
-        <FormWindow />
+        <FormWindow data={data} />
       </div>
     </main>
   );
