@@ -3,8 +3,16 @@
 import { useState } from "react";
 import { FormFields, AddCity, InfoPopup } from "./index";
 import { ChampionData } from "@/types/modelTypes";
+import { Database } from "../types/supabase";
 
-export const FormWindow = () => {
+type StatusRow =
+  Database["public"]["Tables"]["fairrentpredictor_data_status"]["Row"];
+
+interface FormWindowProps {
+  data: StatusRow[] | null;
+}
+
+export const FormWindow = ({ data }: FormWindowProps) => {
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [advancedMode, setAdvancedMode] = useState<boolean>(false);
@@ -75,12 +83,14 @@ export const FormWindow = () => {
               setResult={setResult}
               advancedMode={advancedMode}
               setCityWindowOpen={setCityWindowOpen}
+              data={data}
             />
           ) : (
             <AddCity
               setCityWindowOpen={setCityWindowOpen}
               setResult={setResult}
               setError={setError}
+              data={data}
             />
           )}
         </div>

@@ -1,11 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { Database } from "../types/supabase";
+
+type StatusRow =
+  Database["public"]["Tables"]["fairrentpredictor_data_status"]["Row"];
 
 interface FormFieldsProps {
   setCityWindowOpen: (value: boolean | ((prev: boolean) => boolean)) => void;
   setError: (value: string | null) => void;
   setResult: (value: string | null) => void;
+  data: StatusRow[] | null;
 }
 
 interface FormErrors {
@@ -17,6 +22,7 @@ export const AddCity = ({
   setCityWindowOpen,
   setResult,
   setError,
+  data,
 }: FormFieldsProps) => {
   const [formData, setFormData] = useState({
     zip_code: "",
@@ -69,6 +75,34 @@ export const AddCity = ({
 
     if (Object.keys(newErrors).length > 0) {
       // console.log("Validierung fehlgeschlagen:", newErrors);
+      return;
+    }
+
+    const filteredData =
+      formData.zip_code === ""
+        ? data
+        : data?.filter((item) => item.zip_code.includes(formData.zip_code));
+
+    if (filteredData?.[0]?.status && filteredData?.[0]?.status !== "open") {
+      setError(
+        `Wohnungen aus${formData.zip_code}] werden gerade aktualisiert.`
+      );
+      return;
+    }
+
+    const lastUpdate = new Date(filteredData?.[0]?.updated_at || 0);
+    const now = new Date();
+    const diffInMs = now.getTime() - lastUpdate.getTime();
+    const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+
+    if (filteredData?.[0]?.updated_at && diffInDays < 7) {
+      const remainingDays = 7 - diffInDays;
+      const daysToWait = Math.ceil(remainingDays);
+      const dayWord = daysToWait === 1 ? "Tag" : "Tage";
+
+      setError(
+        `Wohnungen aus ${formData.zip_code} wurden vor kurzem aktualisiert. Bitte warte ${daysToWait} ${dayWord}.`
+      );
       return;
     }
 

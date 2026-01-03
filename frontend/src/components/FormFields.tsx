@@ -1,11 +1,17 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useRef, useEffect } from "react";
+import { Database } from "../types/supabase";
+
+type StatusRow =
+  Database["public"]["Tables"]["fairrentpredictor_data_status"]["Row"];
+
 interface FormFieldsProps {
   advancedMode: boolean;
   setError: (value: string | null) => void;
   setResult: (value: string | null) => void;
   setCityWindowOpen: (value: boolean) => void;
+  data: StatusRow[] | null;
 }
 
 interface FormErrors {
@@ -14,12 +20,16 @@ interface FormErrors {
   zip_code?: string;
   year_constructed?: string;
 }
+
 export const FormFields = ({
   advancedMode,
   setError,
   setResult,
   setCityWindowOpen,
+  data,
 }: FormFieldsProps) => {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [formData, setFormData] = useState({
@@ -51,8 +61,17 @@ export const FormFields = ({
       newErrors.rooms = "Mindestens 1 Zimmer erforderlich.";
     }
 
-    if (!formData.zip_code || formData.zip_code.length < 5) {
+    if (
+      !formData.zip_code ||
+      formData.zip_code.length < 5 ||
+      formData.zip_code.length > 5
+    ) {
       newErrors.zip_code = "PLZ muss 5-stellig sein.";
+    }
+
+    const zipCheck = data?.some((item) => item.zip_code === formData.zip_code);
+    if (!zipCheck) {
+      newErrors.zip_code = "Noch keine Trainingsdaten.";
     }
 
     const inputYear = parseInt(formData.year_constructed);
@@ -169,6 +188,24 @@ export const FormFields = ({
     }));
   };
 
+  const filteredData =
+    formData.zip_code === ""
+      ? data
+      : data?.filter((item) => item.zip_code.includes(formData.zip_code));
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [wrapperRef]);
+
   return (
     <form
       onSubmit={onSubmit}
@@ -222,41 +259,73 @@ export const FormFields = ({
             placeholder="2"
           />
         </label>
-        <label
-          htmlFor="zip_code_input"
-          className="flex flex-col justify-between"
-        >
-          <div className="flex flex-wrap justify-between items-baseline h-full">
-            <div className="flex flex-wrap items-baseline">
-              <span className="text-sm md:text-base font-semibold mr-2 md:mr-0">
-                Postleitzahl
-              </span>
-              <button
-                className="md:px-2 text-[10px] md:text-xs text-gray-400 hover:text-blue-500 cursor-pointer whitespace-nowrap"
-                onClick={() => setCityWindowOpen(true)}
-              >
-                Nicht vorhanden?
-              </button>
-            </div>
-            <span className="text-red-600 text-[10px] md:text-xs whitespace-nowrap mt-auto">
-              {formErrors?.zip_code}
-            </span>
-          </div>
 
-          <input
-            name="zip_code"
-            id="zip_code_input"
-            type="text"
-            inputMode="numeric"
-            minLength={5}
-            value={formData.zip_code}
-            onChange={handleChange}
-            placeholder="04103"
-            className={`mt-1 w-full rounded bg-gray-600/10 border-gray-600/50 ${
-              formErrors.zip_code ? "outline outline-red-600/80" : ""
-            }  shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
-          />
-        </label>
+        <div ref={wrapperRef} className="relative w-full">
+          <label
+            htmlFor="zip_code_input"
+            className="flex flex-col justify-between"
+          >
+            <div className="flex flex-wrap justify-between items-baseline h-full">
+              <div className="flex flex-wrap items-baseline">
+                <span className="text-sm md:text-base font-semibold mr-2 md:mr-0">
+                  Postleitzahl
+                </span>
+                <button
+                  className="md:px-2 text-[10px] md:text-xs text-gray-400 hover:text-blue-500 cursor-pointer whitespace-nowrap"
+                  onClick={() => setCityWindowOpen(true)}
+                >
+                  Nicht vorhanden?
+                </button>
+              </div>
+              <span className="text-red-600 text-[10px] md:text-xs whitespace-nowrap mt-auto">
+                {formErrors?.zip_code}
+              </span>
+            </div>
+
+            <input
+              name="zip_code"
+              id="zip_code_input"
+              type="text"
+              inputMode="numeric"
+              value={formData.zip_code}
+              onFocus={() => setIsOpen(true)}
+              onChange={(e) => {
+                handleChange(e);
+                setIsOpen(true);
+              }}
+              placeholder="04103"
+              className={`mt-1 w-full rounded bg-gray-600/10 border-gray-600/50 ${
+                formErrors.zip_code ? "outline outline-red-600/80" : ""
+              }  shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
+            />
+          </label>
+
+          {isOpen && filteredData && filteredData.length > 0 && (
+            <ul className="absolute z-10 w-full mt-1 max-h-60 overflow-auto bg-gray-100 text-black rounded shadow-lg border border-gray-200">
+              {filteredData.map((item, index) => (
+                <li
+                  key={index}
+                  className="p-2 hover:bg-blue-100 cursor-pointer transition-colors"
+                  onClick={() => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      zip_code: item.zip_code,
+                    }));
+                    setIsOpen(false);
+                  }}
+                >
+                  {item.zip_code}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {isOpen && filteredData?.length === 0 && (
+            <div className="absolute z-10 w-full mt-1 p-2 bg-white rounded shadow text-gray-500">
+              Keine PLZ gefunden.
+            </div>
+          )}
+        </div>
 
         <label
           htmlFor="year_constructed_input"
