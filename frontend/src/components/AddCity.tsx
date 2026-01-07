@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { Database } from "../types/supabase";
 
-type StatusRow =
-  Database["public"]["Tables"]["fairrentpredictor_data_status"]["Row"];
+type StatusRow = Database["public"]["Tables"]["rent_features_agg"]["Row"];
 
 interface FormFieldsProps {
   setCityWindowOpen: (value: boolean | ((prev: boolean) => boolean)) => void;

@@ -13,7 +13,7 @@ def train_model(df):
     # FEATURES SETTING / SELECTION
     # # -----------------------------
     numeric_features = ['size', 'rooms', 'year_constructed']# 'location_lat', 'location_lng'
-    location_features = ['zip_code']#'city', , 'region'
+    location_features = ['city', 'zip_code']#, 'region'
     boolean_features = [
         'elevator', 'garden', 'fitted_kitchen', 
         'balcony_terrace', 'cellar', 'is_new_building'] #, 'has_parking'

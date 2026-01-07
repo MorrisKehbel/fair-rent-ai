@@ -1,17 +1,17 @@
 import pandas as pd
 
+features = [
+    'rent_cold', 'size', 'rooms', 'year_constructed', 
+    'zip_code', 'city', 'regio', 'balcony_terrace', 
+     'fitted_kitchen', 'elevator', 'condition', 'garden', 'cellar',
+     'no_of_parking_spaces',
+     'location_lat', 'location_lng'
+]
+
 def clean_and_score_data(raw_json_data):
     df = pd.json_normalize(raw_json_data)
     
     # loading raw data features
-    features = [
-        'rent_cold', 'size', 'rooms', 'year_constructed', 
-        'zip_code', 'city', 'attributes.obj_regio4', 'balcony_terrace', 
-        'fitted_kitchen', 'elevator', 'condition', 'garden', 'cellar',
-        'no_of_parking_spaces',
-        'location_lat', 'location_lng'
-    ]
-
     existing_cols = [c for c in features if c in df.columns]
     df_ml = df[existing_cols].copy()
 
@@ -41,7 +41,7 @@ def clean_and_score_data(raw_json_data):
         )
 
     df_ml['region'] = (
-        df_ml.get('attributes.obj_regio4', 'unknown')
+        df_ml.get('regio', 'unknown')
         .astype(str)
         .str.lower()
         .str.strip()
