@@ -17,9 +17,13 @@ def main():
     mlflow_tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
     if mlflow_tracking_uri:
         mlflow.set_tracking_uri(mlflow_tracking_uri)
-# Loading Data
-    mlflow.set_experiment("Rent_Price_Predictor_V1")
+        mlflow.set_experiment("Rent_Price_Predictor_V2")
+
+    # # -----------------------------
+    # LOADING DATA
+    # # -----------------------------
     bucket_uri = os.getenv("MLFLOW_S3_BUCKET")
+
     file_path = f"{bucket_uri}data/latest_data.json"
     
     print(f"Loading dataset from: {file_path} ...")
@@ -35,11 +39,31 @@ def main():
     except Exception as e:
         print(f"Error loading dataset from {file_path}. Error: {e}")
         return
+
+    # -----------------------------
+    # --- for local testing ---
     
-# Data Cleaning and Preprocessing Features
+    # file_path = "data/latest_data.json" 
+    # print(f"Loading dataset from local file: {file_path} ...")
+    
+    # try:
+    #     with open(file_path, 'r', encoding='utf-8') as f:
+    #         raw_data = json.load(f)
+            
+    #     print(f"Dataset successfully loaded ({len(raw_data)} records).")
+        
+    # except Exception as e:
+    #     print(f"Error loading dataset from {file_path}. Error: {e}")
+    #     return
+    
+    # # -----------------------------
+    # DATA CLEANING / PREPROCESSING FEATURES
+    # # -----------------------------
     df_clean = clean_and_score_data(raw_data)
 
-# Model Training and Logging with MLflow
+    # # -----------------------------
+    # MODEL TRAINING / LOGGING
+    # # -----------------------------
     with mlflow.start_run() as run:
         mlflow.log_param("num_samples", len(df_clean))
         

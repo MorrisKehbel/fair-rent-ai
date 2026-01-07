@@ -9,7 +9,9 @@ from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, m
 def evaluate_and_log(model_pipeline, X_test, y_test, feature_names=None):
     predictions = model_pipeline.predict(X_test)
     
-# 1. METRICS GENERATION AND LOGGING
+    # # -----------------------------
+    # METRICS GENERATION AND LOGGING
+    # # -----------------------------
     metrics = {
         "mae": mean_absolute_error(y_test, predictions),
         "mse": mean_squared_error(y_test, predictions),
@@ -30,9 +32,10 @@ def evaluate_and_log(model_pipeline, X_test, y_test, feature_names=None):
     print(f"MAPE:     {metrics['mape']:.2%}")
     print("="*30)
     
-# 2. PLOT VISUALIZATIONS
-    
-    # Plot A: Actual vs Predicted
+    # # -----------------------------
+    # PLOT VISUALIZATIONS
+    # # -----------------------------
+    # # PLOT A: Actual vs Predicted
     fig1 = plt.figure(figsize=(10, 6))
     plt.scatter(y_test, predictions, alpha=0.3)
     plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
@@ -44,8 +47,8 @@ def evaluate_and_log(model_pipeline, X_test, y_test, feature_names=None):
     mlflow.log_figure(fig1, "actual_vs_predicted.png")
     plt.close(fig1)
 
-
-    # Plot A2: Actual vs Predicted (percentage error)
+    # # -----------------------------
+    # # PLOT A2: Actual vs Predicted (percentage error)
     pct_error = 100 * (y_test - predictions) / y_test
 
     fig2 = plt.figure(figsize=(10, 6))
@@ -59,8 +62,8 @@ def evaluate_and_log(model_pipeline, X_test, y_test, feature_names=None):
     mlflow.log_figure(fig2, "actual_vs_predicted_relative.png")
     plt.close(fig2)
 
-
-    # Plot B: Residuals Distribution
+    # # -----------------------------
+    # # PLOT B: Residuals Distribution
     residuals = y_test - predictions
     fig3 =plt.figure(figsize=(10, 6))
     sns.histplot(residuals, kde=True, bins=30)
@@ -70,8 +73,8 @@ def evaluate_and_log(model_pipeline, X_test, y_test, feature_names=None):
     mlflow.log_figure(fig3, "error_distribution.png")
     plt.close(fig3)
 
-
-    # Plot C: Feature Importance (RandomForest)
+    # # -----------------------------
+    # # PLOT C: Feature Importance
     if hasattr(model_pipeline.named_steps['regressor'], 'feature_importances_'):
         rf_model = model_pipeline.named_steps['regressor']
         importances = rf_model.feature_importances_

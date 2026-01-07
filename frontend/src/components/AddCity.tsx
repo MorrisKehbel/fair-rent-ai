@@ -63,7 +63,11 @@ export const AddCity = ({
     // validation
     const newErrors: FormErrors = {};
 
-    if (!formData.zip_code || formData.zip_code.length < 5) {
+    if (
+      !formData.zip_code ||
+      formData.zip_code.length < 5 ||
+      formData.zip_code.length > 5
+    ) {
       newErrors.zip_code = "PLZ muss 5-stellig sein.";
     }
 
@@ -110,7 +114,7 @@ export const AddCity = ({
 
     const payload = {
       plz: formData.zip_code,
-      cityName: formData.city_name,
+      cityName: formData.city_name.trim(),
     };
 
     try {

@@ -39,8 +39,11 @@ export const FormFields = ({
     year_constructed: "",
     has_kitchen: false,
     has_elevator: false,
-    has_garage: false,
+    has_garden: false,
     has_balcony: false,
+    has_is_new_building: false,
+    has_parking: false,
+    has_cellar: false,
   });
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -50,7 +53,6 @@ export const FormFields = ({
     setResult(null);
 
     const newErrors: FormErrors = {};
-    const currentYear = new Date().getFullYear();
 
     // validation
     if (!formData.size || parseInt(formData.size) < 10) {
@@ -70,18 +72,19 @@ export const FormFields = ({
     }
 
     const zipCheck = data?.some((item) => item.zip_code === formData.zip_code);
-    if (!zipCheck) {
+    if (!zipCheck && formData.zip_code.length === 5) {
       newErrors.zip_code = "Noch keine Trainingsdaten.";
     }
 
-    const inputYear = parseInt(formData.year_constructed);
-    if (
-      !formData.year_constructed ||
-      inputYear <= 1600 ||
-      inputYear > currentYear
-    ) {
-      newErrors.year_constructed = "Bitte ein gültiges Baujahr angeben.";
-    }
+    // const currentYear = new Date().getFullYear();
+    // const inputYear = parseInt(formData.year_constructed);
+    // if (
+    //   !formData.year_constructed ||
+    //   inputYear <= 1600 ||
+    //   inputYear > currentYear
+    // ) {
+    //   newErrors.year_constructed = "Bitte ein gültiges Baujahr angeben.";
+    // }
 
     setFormErrors(newErrors);
 
@@ -93,16 +96,19 @@ export const FormFields = ({
     setLoading(true);
 
     const payload = {
-      size: formData.size.replace(",", "."),
-      rooms: formData.rooms.replace(",", "."),
-      zip_code: formData.zip_code,
+      size: parseFloat(formData.size.replace(",", ".")),
+      rooms: parseFloat(formData.rooms.replace(",", ".")),
       year_constructed: parseInt(formData.year_constructed),
-      ...(advancedMode && {
-        balcony: formData.has_balcony,
-        kitchen: formData.has_kitchen,
-        elevator: formData.has_elevator,
-        // garage: formData.has_garage,
-      }),
+      // city: formData.city,
+      zip_code: formData.zip_code,
+      // region: formData.region,
+      elevator: formData.has_elevator,
+      garden: formData.has_garden,
+      fitted_kitchen: formData.has_kitchen,
+      balcony_terrace: formData.has_balcony,
+      cellar: formData.has_cellar,
+      is_new_building: formData.has_is_new_building,
+      // has_parking: formData.has_parking,
     };
 
     try {
@@ -188,10 +194,12 @@ export const FormFields = ({
     }));
   };
 
+  const activeData = data?.filter((item) => item.status !== "running");
+
   const filteredData =
     formData.zip_code === ""
-      ? data
-      : data?.filter((item) => item.zip_code.includes(formData.zip_code));
+      ? activeData
+      : activeData?.filter((item) => item.zip_code.includes(formData.zip_code));
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -211,12 +219,13 @@ export const FormFields = ({
       onSubmit={onSubmit}
       className="flex flex-col justify-between h-full mt-4 md:mt-0"
     >
-      <div
-        className={`w-full grid gap-3 content-start ${
-          advancedMode ? "grid-cols-2" : "grid-cols-1"
-        }`}
-      >
-        <label htmlFor="size_input" className="flex flex-col justify-between">
+      <div className={`w-full grid gap-4 content-start grid-cols-2`}>
+        <label
+          htmlFor="size_input"
+          className={`flex flex-col justify-between ${
+            advancedMode ? "col-span-1" : "col-span-2"
+          }`}
+        >
           <div className="flex flex-wrap justify-between items-baseline h-full">
             <span className="text-sm md:text-base font-semibold">
               Wohnfläche (m²)
@@ -238,7 +247,12 @@ export const FormFields = ({
             placeholder="60"
           />
         </label>
-        <label htmlFor="rooms_input" className="flex flex-col justify-between">
+        <label
+          htmlFor="rooms_input"
+          className={`flex flex-col justify-between ${
+            advancedMode ? "col-span-1" : "col-span-2"
+          }`}
+        >
           <div className="flex flex-wrap justify-between items-baseline h-full">
             <span className="text-sm md:text-base font-semibold">Zimmer</span>
             <span className="text-red-600 text-[10px] md:text-xs whitespace-nowrap mt-auto">
@@ -260,7 +274,12 @@ export const FormFields = ({
           />
         </label>
 
-        <div ref={wrapperRef} className="relative w-full">
+        <div
+          ref={wrapperRef}
+          className={`relative w-full ${
+            advancedMode ? "col-span-1" : "col-span-2"
+          }`}
+        >
           <label
             htmlFor="zip_code_input"
             className="flex flex-col justify-between"
@@ -271,7 +290,7 @@ export const FormFields = ({
                   Postleitzahl
                 </span>
                 <button
-                  className="md:px-2 text-[10px] md:text-xs text-gray-400 hover:text-blue-500 cursor-pointer whitespace-nowrap"
+                  className="md:px-2 text-[10px] md:text-xs text-gray-400 hover:text-blue-600 cursor-pointer whitespace-nowrap"
                   onClick={() => setCityWindowOpen(true)}
                 >
                   Nicht vorhanden?
@@ -326,100 +345,209 @@ export const FormFields = ({
             </div>
           )}
         </div>
-
-        <label
-          htmlFor="year_constructed_input"
-          className="flex flex-col justify-between"
-        >
-          <div className="flex flex-wrap justify-between items-baseline h-full">
-            <span className="text-sm md:text-base font-semibold">Baujahr</span>
-            <span className="text-red-600 text-[10px] md:text-xs whitespace-nowrap mt-auto">
-              {formErrors?.year_constructed}
-            </span>
-          </div>
-          <input
-            name="year_constructed"
-            id="year_constructed_input"
-            type="text"
-            inputMode="numeric"
-            minLength={4}
-            value={formData.year_constructed}
-            onChange={handleChange}
-            placeholder="1990"
-            className={`mt-1 w-full rounded bg-gray-600/10 border-gray-600/50 ${
-              formErrors.year_constructed ? "outline outline-red-600/80" : ""
-            }  shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
-          />
-        </label>
         {advancedMode && (
           <>
-            <div className="flex flex-wrap justify-between gap-2">
-              <div className="flex items-center justify-between w-full">
-                <label
-                  htmlFor="custom-check-balcony"
-                  className="text-sm md:text-base font-semibold"
-                >
-                  Balkon/Terrasse:
-                </label>
-                <div className="relative flex items-center">
-                  <input
-                    name="has_balcony"
-                    type="checkbox"
-                    id="custom-check-balcony"
-                    checked={formData.has_balcony}
-                    onChange={handleChange}
-                    className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-400 transition-all checked:border-blue-500 checked:bg-blue-500 hover:scale-105 shadow-sm"
-                  />
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-3.5 w-3.5"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                </div>
+            <label
+              htmlFor="year_constructed_input"
+              className="flex flex-col justify-between"
+            >
+              <div className="flex flex-wrap justify-between items-baseline h-full">
+                <span className="text-sm md:text-base font-semibold">
+                  Baujahr
+                </span>
+                <span className="text-red-600 text-[10px] md:text-xs whitespace-nowrap mt-auto">
+                  {formErrors?.year_constructed}
+                </span>
               </div>
-              <div className="flex items-center justify-between w-full">
-                <label
-                  htmlFor="custom-check-kitchen"
-                  className="text-sm md:text-base font-semibold"
+              <input
+                name="year_constructed"
+                id="year_constructed_input"
+                type="text"
+                inputMode="numeric"
+                minLength={4}
+                value={formData.year_constructed}
+                onChange={handleChange}
+                placeholder="1990"
+                className={`mt-1 w-full rounded bg-gray-600/10 border-gray-600/50 ${
+                  formErrors.year_constructed
+                    ? "outline outline-red-600/80"
+                    : ""
+                }  shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
+              />
+            </label>
+          </>
+        )}
+        <div className="flex flex-col flex-wrap justify-between gap-2">
+          <div className="flex items-center justify-between w-full">
+            <label
+              htmlFor="custom-check-balcony"
+              className="text-sm md:text-base font-semibold"
+            >
+              Balkon/Terrasse:
+            </label>
+            <div className="relative flex items-center">
+              <input
+                name="has_balcony"
+                type="checkbox"
+                id="custom-check-balcony"
+                checked={formData.has_balcony}
+                onChange={handleChange}
+                className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-400 transition-all checked:border-blue-600 checked:bg-blue-600 hover:scale-105 shadow-sm"
+              />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-3.5 w-3.5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
                 >
-                  Einbauküche:
-                </label>
-                <div className="relative flex items-center">
-                  <input
-                    name="has_kitchen"
-                    type="checkbox"
-                    id="custom-check-kitchen"
-                    checked={formData.has_kitchen}
-                    onChange={handleChange}
-                    className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-400 transition-all checked:border-blue-500 checked:bg-blue-500 hover:scale-105 shadow-sm"
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
                   />
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-3.5 w-3.5"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                </div>
+                </svg>
               </div>
             </div>
-            <div className="flex flex-wrap justify-between gap-2">
+          </div>
+          <div className="flex items-center justify-between w-full">
+            <label
+              htmlFor="custom-check-kitchen"
+              className="text-sm md:text-base font-semibold"
+            >
+              Einbauküche:
+            </label>
+            <div className="relative flex items-center">
+              <input
+                name="has_kitchen"
+                type="checkbox"
+                id="custom-check-kitchen"
+                checked={formData.has_kitchen}
+                onChange={handleChange}
+                className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-400 transition-all checked:border-blue-600 checked:bg-blue-600 hover:scale-105 shadow-sm"
+              />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-3.5 w-3.5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+          {advancedMode && (
+            <>
+              <div className="flex items-center justify-between w-full">
+                <label
+                  htmlFor="custom-check-cellar"
+                  className="text-sm md:text-base font-semibold"
+                >
+                  Keller:
+                </label>
+                <div className="relative flex items-center">
+                  <input
+                    name="has_cellar"
+                    type="checkbox"
+                    id="custom-check-cellar"
+                    checked={formData.has_cellar}
+                    onChange={handleChange}
+                    className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-400 transition-all checked:border-blue-600 checked:bg-blue-600 hover:scale-105 shadow-sm"
+                  />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-3.5 w-3.5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+        <div className="flex flex-wrap justify-between gap-2">
+          <div className="flex items-center justify-between w-full">
+            <label
+              htmlFor="custom-check-garden"
+              className="text-sm md:text-base font-semibold"
+            >
+              Garten/-mitnutzung
+            </label>
+            <div className="relative flex items-center">
+              <input
+                name="has_garden"
+                type="checkbox"
+                id="custom-check-garden"
+                checked={formData.has_garden}
+                onChange={handleChange}
+                className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-400 transition-all checked:border-blue-600 checked:bg-blue-600 hover:scale-105 shadow-sm"
+              />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-3.5 w-3.5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between w-full">
+            <label
+              htmlFor="custom-check-new"
+              className="text-sm md:text-base font-semibold"
+            >
+              Erstbezug/Renoviert:
+            </label>
+            <div className="relative flex items-center">
+              <input
+                name="has_is_new_building"
+                type="checkbox"
+                id="custom-check-new"
+                checked={formData.has_is_new_building}
+                onChange={handleChange}
+                className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-400 transition-all checked:border-blue-600 checked:bg-blue-600 hover:scale-105 shadow-sm"
+              />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-3.5 w-3.5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {advancedMode && (
+            <>
+              {" "}
               <div className="flex items-center justify-between w-full">
                 <label
                   htmlFor="custom-check-elevator"
@@ -434,7 +562,7 @@ export const FormFields = ({
                     id="custom-check-elevator"
                     checked={formData.has_elevator}
                     onChange={handleChange}
-                    className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-400 transition-all checked:border-blue-500 checked:bg-blue-500 hover:scale-105 shadow-sm"
+                    className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-400 transition-all checked:border-blue-600 checked:bg-blue-600 hover:scale-105 shadow-sm"
                   />
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity">
                     <svg
@@ -452,41 +580,9 @@ export const FormFields = ({
                   </div>
                 </div>
               </div>
-              <div className="flex items-center justify-between w-full">
-                <label
-                  htmlFor="custom-check-garage"
-                  className="text-sm md:text-base font-semibold"
-                >
-                  Garage/Stellplatz:
-                </label>
-                <div className="relative flex items-center">
-                  <input
-                    name="has_garage"
-                    type="checkbox"
-                    id="custom-check-garage"
-                    checked={formData.has_garage}
-                    onChange={handleChange}
-                    className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-400 transition-all checked:border-blue-500 checked:bg-blue-500 hover:scale-105 shadow-sm"
-                  />
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-3.5 w-3.5"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       <button

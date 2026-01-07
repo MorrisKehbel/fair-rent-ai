@@ -10,24 +10,25 @@ interface InfoPopupProps {
 const FEATURE_NAMES: Record<string, string> = {
   size: "Wohnfläche",
   year_constructed: "Baujahr",
-  location_lat: "Geografische Lage",
   rooms: "Zimmeranzahl",
   zip_code: "Postleitzahl",
-  kitchen: "Einbauküche",
-  balcony: "Balkon",
+  fitted_kitchen: "Einbauküche",
+  balcony_terrace: "Balkon",
   elevator: "Aufzug",
-  condition: "Zustand",
-  energy: "Energieeffizienz",
+  garden: "Garten/-mitnutzung",
+  cellar: "Keller",
+  is_new_building: "Erstbezug/Renoviert",
+};
+
+const getCleanFeatureName = (technicalName: string): string => {
+  const coreName = technicalName.replace(/^(num__|loc__|bool__)/, "");
+  const foundEntry = Object.entries(FEATURE_NAMES).find(([key]) =>
+    coreName.includes(key)
+  );
+  return foundEntry ? foundEntry[1] : coreName;
 };
 
 export const InfoPopup = ({ championData, loading }: InfoPopupProps) => {
-  const getCleanFeatureName = (technicalName: string): string => {
-    const coreName = technicalName.replace(/^(num__|cat__)/, "");
-    const foundEntry = Object.entries(FEATURE_NAMES).find(([key]) =>
-      coreName.includes(key)
-    );
-    return foundEntry ? foundEntry[1] : coreName;
-  };
   return (
     <>
       <div

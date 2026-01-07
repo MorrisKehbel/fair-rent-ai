@@ -8,17 +8,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from mlflow.tracking import MlflowClient
 from datetime import datetime
+from typing import Optional
 
 MODEL_NAME = "Rent_Price_Predictor"
 
 model = None
 
+# # -----------------------------
+# LOAD LATEST CHAMPION MODEL
+# # -----------------------------
 def load_model_logic():
     global model
-# load the latest registered champion model
+
     mlflow_tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
+
     if mlflow_tracking_uri:
         mlflow.set_tracking_uri(mlflow_tracking_uri)
+
     try:
         model_uri = f"models:/{MODEL_NAME}@champion"
 
@@ -35,8 +41,10 @@ async def lifespan(app: FastAPI):
     load_model_logic()
     yield
 
+# # -----------------------------
+# CONNECTION
+# # -----------------------------
 app = FastAPI(title="Rent Price Predictor API", lifespan=lifespan)
-
 
 # CORS settings
 app.add_middleware(
@@ -47,24 +55,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# default values for testing 
+# # -----------------------------
+# SCHEMAS
+# # -----------------------------
 class RentRequest(BaseModel):
     size: float
     rooms: float
-    zip_code: str = "04103" 
-    lat: float = 0.0
-    lng: float = 0.0
-    year_constructed: int = 1990
-    balcony: bool = False
-    kitchen: bool = False
-    elevator: bool = False
+    # lat: Optional[float] = None
+    # lng: Optional[float] = None
+    year_constructed: Optional[int] = None
 
+    # city: Optional[str] = None
+    zip_code: str
+    # region: Optional[str] = None
 
+    elevator: Optional[bool] = None
+    garden: Optional[bool] = None
+    fitted_kitchen: Optional[bool] = None
+    balcony_terrace: Optional[bool] = None
+    cellar: Optional[bool] = None
+    is_new_building: Optional[bool] = None
+    # has_parking: Optional[bool] = None
+
+# # -----------------------------
+# ENDPOINTS
+# # -----------------------------
 @app.post("/predict")
 def predict(request: RentRequest):
     global model
-# lazy loading - model might not be there if training hasn't finished yet
+    # lazy loading - model might not be there if training hasn't finished yet
     if not model:
         print("No model loaded, attempting reload...")
         success = load_model_logic()
@@ -72,28 +91,24 @@ def predict(request: RentRequest):
             raise HTTPException(status_code=503, detail="Model could not be loaded. Please wait and try again.")
 
     try:
-    # input data 
-        input_data = pd.DataFrame([request.dict()])
-
         data_for_prediction = pd.DataFrame({
             'size': [request.size],
             'rooms': [request.rooms],
-            'year_constructed': [request.year_constructed],
-            'location_lat': [request.lat],
-            'location_lng': [request.lng],
+            # 'lat': [request.lat or 0],
+            # 'lng': [request.lng or 0],
+            'year_constructed': [request.year_constructed or 1996],
+
+            # 'city': [request.city or "unknown"],
             'zip_code': [str(request.zip_code)],
+            # 'region': [request.region or "unknown"],
 
-            'balcony_terrace': [1 if request.balcony else 0], 
-            'fitted_kitchen': [1 if request.kitchen else 0],
             'elevator': [1 if request.elevator else 0],
-
-        # default scores for testing
-            'ancillary_costs': [0],
-            'heating_type': ['central_heating'],
-            'condition_score': [3],
-            'quality_score': [2], 
-            'energy_class_score': [4],
-            'flat_type_score': [3],
+            'garden': [1 if request.garden else 0], 
+            'fitted_kitchen': [1 if request.fitted_kitchen else 0],
+            'balcony_terrace': [1 if request.balcony_terrace else 0], 
+            'cellar': [1 if request.cellar else 0],
+            'is_new_building': [1 if request.is_new_building else 0]
+            # 'has_parking': [1 if request.has_parking else 0],
         })
 
         print(data_for_prediction.to_string())
@@ -162,6 +177,7 @@ def get_model_info():
             "metrics": {
                 "r2_score": metrics.get("r2_score"),
                 "mae": metrics.get("mae"),
+                "mape": metrics.get("mape")
             },
             "top_features": top_features
         }
