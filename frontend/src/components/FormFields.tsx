@@ -27,13 +27,19 @@ export const FormFields = ({
   setCityWindowOpen,
   data,
 }: FormFieldsProps) => {
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const [isOpen, setIsOpen] = useState(false);
+  const ZipWrapperRef = useRef<HTMLDivElement>(null);
+  const CityWrapperRef = useRef<HTMLDivElement>(null);
+  const RegionWrapperRef = useRef<HTMLDivElement>(null);
+  const [zipDropdownOpen, setZipDropdownOpen] = useState(false);
+  const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
+  const [regionDropdownOpen, setRegionDropdownOpen] = useState(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [formData, setFormData] = useState({
     size: "",
     rooms: "",
+    city: "",
+    region: "",
     zip_code: "",
     year_constructed: "",
     has_kitchen: false,
@@ -103,7 +109,7 @@ export const FormFields = ({
       year_constructed: parseInt(formData.year_constructed),
       city: city,
       zip_code: formData.zip_code,
-      // region: formData.region,
+      region: formData.region,
       elevator: formData.has_elevator,
       garden: formData.has_garden,
       fitted_kitchen: formData.has_kitchen,
@@ -144,6 +150,7 @@ export const FormFields = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
 
+    // Checkboxen unverändert
     if (type === "checkbox") {
       setFormData((prev) => ({
         ...prev,
@@ -152,6 +159,7 @@ export const FormFields = ({
       return;
     }
 
+    // Numerische Felder wie vorher
     type FieldConfig = {
       maxInt: number;
       maxDec: number;
@@ -164,57 +172,135 @@ export const FormFields = ({
       year_constructed: { maxInt: 4, maxDec: 0 },
     };
 
-    const rules = fieldRules[name] || { maxInt: 99, maxDec: 0 };
+    const rules = fieldRules[name];
 
-    let cleanValue = value;
+    if (rules) {
+      let cleanValue = value;
 
-    if (rules.maxDec > 0) {
-      cleanValue = cleanValue.replace(/[^0-9,]/g, "");
+      if (rules.maxDec > 0) {
+        cleanValue = cleanValue.replace(/[^0-9,]/g, "");
+        const commaCount = (cleanValue.match(/,/g) || []).length;
+        if (commaCount > 1) return;
+      } else {
+        cleanValue = cleanValue.replace(/\D/g, "");
+      }
 
-      const commaCount = (cleanValue.match(/,/g) || []).length;
+      if (cleanValue.includes(",")) {
+        const parts = cleanValue.split(",");
+        const integerPart = parts[0];
+        const decimalPart = parts[1];
 
-      if (commaCount > 1) return;
-    } else {
-      cleanValue = cleanValue.replace(/\D/g, "");
-    }
+        if (integerPart.length > rules.maxInt) return;
+        if (decimalPart.length > rules.maxDec) return;
+      } else {
+        if (cleanValue.length > rules.maxInt) return;
+      }
 
-    if (cleanValue.includes(",")) {
-      const parts = cleanValue.split(",");
-      const integerPart = parts[0];
-      const decimalPart = parts[1];
-
-      if (integerPart.length > rules.maxInt) return;
-
-      if (decimalPart.length > rules.maxDec) return;
-    } else {
-      if (cleanValue.length > rules.maxInt) return;
+      setFormData((prev) => ({
+        ...prev,
+        [name]: cleanValue,
+      }));
+      return;
     }
 
     setFormData((prev) => ({
       ...prev,
-      [name]: cleanValue,
+      [name]: value,
     }));
   };
 
   const activeData = data?.filter((item) => item.status !== "running");
 
-  const filteredData =
-    formData.zip_code === ""
-      ? activeData
-      : activeData?.filter((item) => item.zip_code.includes(formData.zip_code));
+  // PLZ Dropdown
+  const filteredZipData = activeData?.filter((item) => {
+    if (formData.city) {
+      return (
+        item.city === formData.city &&
+        item.zip_code.startsWith(formData.zip_code)
+      );
+    }
+    return item.zip_code.startsWith(formData.zip_code);
+  });
+
+  const sortedZipData = filteredZipData?.slice().sort((a, b) => {
+    return parseInt(a.zip_code) - parseInt(b.zip_code);
+  });
+
+  // City Dropdown
+  const sortedCityData = activeData
+    ?.filter((item) => {
+      // Wenn eine PLZ gesetzt ist, nur Städte passend zu dieser PLZ anzeigen
+      if (formData.zip_code) {
+        return (
+          item.zip_code.startsWith(formData.zip_code) &&
+          item.city.toLowerCase().includes(formData.city.toLowerCase())
+        );
+      }
+      // sonst nur nach eingegebener Stadt filtern
+      return item.city.toLowerCase().includes(formData.city.toLowerCase());
+    })
+    // nur unique Städte behalten
+    .filter(
+      (item, index, self) =>
+        index === self.findIndex((t) => t.city === item.city)
+    )
+    .sort((a, b) => a.city.localeCompare(b.city));
+
+  // activeData kann undefined sein
+  const activeDataSafe = activeData ?? [];
+
+  // Alle Regionen aus den passenden Daten extrahieren
+  const sortedRegionData = Array.from(
+    new Set(
+      activeDataSafe
+        ?.filter((item) => {
+          const zipMatch = formData.zip_code
+            ? item.zip_code.startsWith(formData.zip_code)
+            : true;
+          const cityMatch = formData.city
+            ? item.city.toLowerCase() === formData.city.toLowerCase()
+            : true;
+          return zipMatch && cityMatch;
+        })
+        .flatMap((item) =>
+          (item.regio ?? "")
+            .split(",")
+            .map((r) => r.trim())
+            .filter((r) => r !== "")
+        ) || []
+    )
+  )
+    .filter((region) =>
+      formData.region === ""
+        ? true
+        : region.toLowerCase().includes(formData.region.toLowerCase())
+    )
+    .sort((a, b) => a.localeCompare(b));
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
-        wrapperRef.current &&
-        !wrapperRef.current.contains(event.target as Node)
+        ZipWrapperRef.current &&
+        !ZipWrapperRef.current.contains(event.target as Node)
       ) {
-        setIsOpen(false);
+        setZipDropdownOpen(false);
+      }
+      if (
+        CityWrapperRef.current &&
+        !CityWrapperRef.current.contains(event.target as Node)
+      ) {
+        setCityDropdownOpen(false);
+      }
+      if (
+        RegionWrapperRef.current &&
+        !RegionWrapperRef.current.contains(event.target as Node)
+      ) {
+        setRegionDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [wrapperRef]);
+  }, [ZipWrapperRef, CityWrapperRef, RegionWrapperRef]);
 
   return (
     <form
@@ -277,7 +363,7 @@ export const FormFields = ({
         </label>
 
         <div
-          ref={wrapperRef}
+          ref={ZipWrapperRef}
           className={`relative w-full ${
             advancedMode ? "col-span-1" : "col-span-2"
           }`}
@@ -309,10 +395,10 @@ export const FormFields = ({
               type="text"
               inputMode="numeric"
               value={formData.zip_code}
-              onFocus={() => setIsOpen(true)}
+              onFocus={() => setZipDropdownOpen(true)}
               onChange={(e) => {
                 handleChange(e);
-                setIsOpen(true);
+                setZipDropdownOpen(true);
               }}
               placeholder="04103"
               className={`mt-1 w-full rounded bg-gray-600/10 border-gray-600/50 ${
@@ -321,9 +407,9 @@ export const FormFields = ({
             />
           </label>
 
-          {isOpen && filteredData && filteredData.length > 0 && (
+          {zipDropdownOpen && filteredZipData && filteredZipData.length > 0 && (
             <ul className="absolute z-10 w-full mt-1 max-h-60 overflow-auto bg-gray-100 text-black rounded shadow-lg border border-gray-200">
-              {filteredData.map((item, index) => (
+              {sortedZipData?.map((item, index) => (
                 <li
                   key={index}
                   className="p-2 hover:bg-blue-100 cursor-pointer transition-colors"
@@ -331,8 +417,9 @@ export const FormFields = ({
                     setFormData((prev) => ({
                       ...prev,
                       zip_code: item.zip_code,
+                      city: item.city,
                     }));
-                    setIsOpen(false);
+                    setZipDropdownOpen(false);
                   }}
                 >
                   {item.zip_code}
@@ -341,7 +428,7 @@ export const FormFields = ({
             </ul>
           )}
 
-          {isOpen && filteredData?.length === 0 && (
+          {zipDropdownOpen && filteredZipData?.length === 0 && (
             <div className="absolute z-10 w-full mt-1 p-2 bg-white rounded shadow text-gray-500">
               Keine PLZ gefunden.
             </div>
@@ -377,6 +464,142 @@ export const FormFields = ({
                 }  shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
               />
             </label>
+            <div
+              ref={CityWrapperRef}
+              className={`relative w-full ${
+                advancedMode ? "col-span-1" : "col-span-2"
+              }`}
+            >
+              <label
+                htmlFor="city_input"
+                className="flex flex-col justify-between"
+              >
+                <div className="flex flex-wrap justify-between items-baseline h-full">
+                  <div className="flex flex-wrap items-baseline">
+                    <span className="text-sm md:text-base font-semibold mr-2 md:mr-0">
+                      Stadt
+                    </span>
+                  </div>
+                </div>
+
+                <input
+                  name="city"
+                  id="city_input"
+                  type="text"
+                  inputMode="text"
+                  value={formData.city}
+                  onFocus={() => setCityDropdownOpen(true)}
+                  onChange={(e) => {
+                    handleChange(e);
+                    setCityDropdownOpen(true);
+                  }}
+                  placeholder="Leipzig"
+                  className={`mt-1 w-full rounded bg-gray-600/10 border-gray-600/50 shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
+                />
+              </label>
+
+              {cityDropdownOpen &&
+                sortedCityData &&
+                sortedCityData.length > 0 && (
+                  <ul className="absolute z-10 w-full mt-1 max-h-60 overflow-auto bg-gray-100 text-black rounded shadow-lg border border-gray-200">
+                    {sortedCityData?.map((item, index) => (
+                      <li
+                        key={index}
+                        className="p-2 hover:bg-blue-100 cursor-pointer transition-colors"
+                        onClick={() => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            city: item.city,
+                          }));
+                          setCityDropdownOpen(false);
+                        }}
+                      >
+                        {item.city}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+              {cityDropdownOpen && sortedCityData?.length === 0 && (
+                <div className="absolute z-10 w-full mt-1 p-2 bg-white rounded shadow text-gray-500">
+                  Keine Städte gefunden
+                </div>
+              )}
+            </div>
+            <div
+              ref={RegionWrapperRef}
+              className={`relative w-full ${
+                advancedMode ? "col-span-1" : "col-span-2"
+              }`}
+            >
+              <label
+                htmlFor="region_input"
+                className="flex flex-col justify-between"
+              >
+                <div className="flex flex-wrap justify-between items-baseline h-full">
+                  <div className="flex flex-wrap items-baseline">
+                    <span className="text-sm md:text-base font-semibold mr-2 md:mr-0">
+                      Region/Bezirk
+                    </span>
+                  </div>
+                </div>
+
+                <input
+                  name="region"
+                  id="region_input"
+                  type="text"
+                  inputMode="text"
+                  value={formData.region}
+                  onFocus={() => setRegionDropdownOpen(true)}
+                  onChange={(e) => {
+                    handleChange(e);
+                    setRegionDropdownOpen(true);
+                  }}
+                  placeholder="Lindenau"
+                  className={`mt-1 w-full rounded bg-gray-600/10 border-gray-600/50 shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
+                />
+              </label>
+
+              {regionDropdownOpen &&
+                sortedRegionData &&
+                sortedRegionData.length > 0 && (
+                  <ul className="absolute z-10 w-full mt-1 max-h-60 overflow-auto bg-gray-100 text-black rounded shadow-lg border border-gray-200">
+                    {sortedRegionData?.map((item, index) => (
+                      <li
+                        key={index}
+                        className="p-2 hover:bg-blue-100 cursor-pointer transition-colors"
+                        onClick={() => {
+                          const matchingItem = activeDataSafe.find(
+                            (d) =>
+                              (d.regio ?? "")
+                                .split(",")
+                                .map((r) => r.trim())
+                                .includes(item) &&
+                              (formData.city ? d.city === formData.city : true)
+                          );
+
+                          setFormData((prev) => ({
+                            ...prev,
+                            region: item,
+                            zip_code: matchingItem?.zip_code || "",
+                            city: matchingItem?.city || "",
+                          }));
+
+                          setRegionDropdownOpen(false);
+                        }}
+                      >
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+              {regionDropdownOpen && sortedRegionData?.length === 0 && (
+                <div className="absolute z-10 w-full mt-1 p-2 bg-white rounded shadow text-gray-500">
+                  Keine Regionen gefunden
+                </div>
+              )}
+            </div>
           </>
         )}
         <div className="flex flex-col flex-wrap justify-between gap-2">

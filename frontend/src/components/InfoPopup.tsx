@@ -76,7 +76,16 @@ export const InfoPopup = ({ championData, loading }: InfoPopupProps) => {
             </div>
             <div className="flex justify-between items-center mt-1">
               <p className="text-[10px] text-gray-500 uppercase tracking-wide">
-                Champion Model
+                Champion Model{" "}
+                {loading ? (
+                  <span className="bg-blue-600/10 text-[10px] text-transparent rounded-md animate-pulse select-none">
+                    (0.90 R²)
+                  </span>
+                ) : (
+                  championData?.metrics?.r2_score != null && (
+                    <> ({championData.metrics.r2_score.toFixed(2)} R²)</>
+                  )
+                )}
               </p>
               {loading ? (
                 <p className="bg-blue-600/10 text-[10px] text-transparent rounded-md animate-pulse select-none">
@@ -98,7 +107,7 @@ export const InfoPopup = ({ championData, loading }: InfoPopupProps) => {
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-gray-50 p-2 rounded-lg border border-blue-100 text-center">
               <span className="block text-[10px] text-gray-500 font-semibold uppercase">
-                Genauigkeit (R²)
+                Genauigkeit
               </span>
               {loading ? (
                 <span className="bg-blue-600/10 text-lg font-bold text-transparent rounded-md animate-pulse select-none">
@@ -106,13 +115,18 @@ export const InfoPopup = ({ championData, loading }: InfoPopupProps) => {
                 </span>
               ) : (
                 <span className="block text-lg font-bold text-blue-600">
-                  {(championData?.metrics?.r2_score ?? 0) * 100 > 0
-                    ? ((championData?.metrics.r2_score ?? 0) * 100).toFixed(1)
-                    : "0.0"}
+                  {(
+                    100 -
+                    Math.min(
+                      Math.max((championData?.metrics?.mape ?? 0) * 100, 0),
+                      100
+                    )
+                  ).toFixed(1)}
                   %
                 </span>
               )}
             </div>
+
             <div className="bg-gray-50 p-2 rounded-lg border border-blue-100 text-center">
               <span className="block text-[10px] text-gray-500 font-semibold uppercase">
                 Ø Abweichung
@@ -159,7 +173,8 @@ export const InfoPopup = ({ championData, loading }: InfoPopupProps) => {
                       (acc: Record<string, number>, feat) => {
                         if (
                           feat.feature === "loc__zip_code" ||
-                          feat.feature === "loc__city"
+                          feat.feature === "loc__city" ||
+                          feat.feature === "loc__region"
                         ) {
                           acc["Standort"] =
                             (acc["Standort"] || 0) + feat.importance;

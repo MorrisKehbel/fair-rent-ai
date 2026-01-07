@@ -67,7 +67,7 @@ class RentRequest(BaseModel):
 
     city: Optional[str] = None
     zip_code: str
-    # region: Optional[str] = None
+    region: Optional[str] = None
 
     elevator: Optional[bool] = None
     garden: Optional[bool] = None
@@ -100,7 +100,7 @@ def predict(request: RentRequest):
 
             'city': [request.city or "unknown"],
             'zip_code': [str(request.zip_code)],
-            # 'region': [request.region or "unknown"],
+            'region': [request.region or "unknown"],
 
             'elevator': [1 if request.elevator else 0],
             'garden': [1 if request.garden else 0], 
