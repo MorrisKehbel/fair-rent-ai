@@ -53,7 +53,7 @@ export const FormWindow = ({ data }: FormWindowProps) => {
         {infoWindowOpen && (
           <InfoPopup championData={championData} loading={loading} />
         )}
-        <div className="flex flex-col px-4 md:px-6 pb-4 md:pb-6 h-108 bg-black/80 rounded-2xl">
+        <div className="flex flex-col px-4 md:px-6 pb-4 md:pb-6 h-108 bg-black/85 rounded-2xl">
           <div className="self-end space-x-2">
             <button
               onClick={() => setAdvancedMode((prev) => !prev)}

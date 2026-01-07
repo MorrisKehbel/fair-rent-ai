@@ -5,6 +5,7 @@ interface FeatureImportance {
 interface ChampionMetrics {
   r2_score: number;
   mae: number;
+  mape: number;
 }
 export interface ChampionData {
   model_version: string;
