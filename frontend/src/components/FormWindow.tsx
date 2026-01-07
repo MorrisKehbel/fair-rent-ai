@@ -5,8 +5,7 @@ import { FormFields, AddCity, InfoPopup } from "./index";
 import { ChampionData } from "@/types/modelTypes";
 import { Database } from "../types/supabase";
 
-type StatusRow =
-  Database["public"]["Tables"]["fairrentpredictor_data_status"]["Row"];
+type StatusRow = Database["public"]["Tables"]["rent_features_agg"]["Row"];
 
 interface FormWindowProps {
   data: StatusRow[] | null;

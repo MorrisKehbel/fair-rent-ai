@@ -3,8 +3,7 @@
 import { FormEvent, useState, useRef, useEffect } from "react";
 import { Database } from "../types/supabase";
 
-type StatusRow =
-  Database["public"]["Tables"]["fairrentpredictor_data_status"]["Row"];
+type StatusRow = Database["public"]["Tables"]["rent_features_agg"]["Row"];
 
 interface FormFieldsProps {
   advancedMode: boolean;
@@ -95,11 +94,14 @@ export const FormFields = ({
 
     setLoading(true);
 
+    const city =
+      data?.find((item) => item.zip_code === formData.zip_code)?.city || "";
+
     const payload = {
       size: parseFloat(formData.size.replace(",", ".")),
       rooms: parseFloat(formData.rooms.replace(",", ".")),
       year_constructed: parseInt(formData.year_constructed),
-      // city: formData.city,
+      city: city,
       zip_code: formData.zip_code,
       // region: formData.region,
       elevator: formData.has_elevator,

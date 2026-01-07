@@ -154,24 +154,41 @@ export const InfoPopup = ({ championData, loading }: InfoPopupProps) => {
                       </div>
                     </div>
                   ))
-                : championData?.top_features?.slice(0, 5).map((feat, i) => (
-                    <div key={i} className="relative">
-                      <div className="flex justify-between text-xs mb-0.5 text-gray-600">
-                        <span className="font-medium">
-                          {getCleanFeatureName(feat.feature)}
-                        </span>
-                        <span className="text-gray-600">
-                          {(feat.importance * 100).toFixed(0)}%
-                        </span>
+                : Object.entries(
+                    championData?.top_features?.reduce(
+                      (acc: Record<string, number>, feat) => {
+                        if (
+                          feat.feature === "loc__zip_code" ||
+                          feat.feature === "loc__city"
+                        ) {
+                          acc["Standort"] =
+                            (acc["Standort"] || 0) + feat.importance;
+                        } else {
+                          acc[getCleanFeatureName(feat.feature)] =
+                            feat.importance;
+                        }
+                        return acc;
+                      },
+                      {}
+                    ) || {}
+                  )
+                    .slice(0, 5)
+                    .map(([feature, importance], i) => (
+                      <div key={i} className="relative">
+                        <div className="flex justify-between text-xs mb-0.5 text-gray-600">
+                          <span className="font-medium">{feature}</span>
+                          <span className="text-gray-600">
+                            {(importance * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className="bg-indigo-500 h-1.5 rounded-full transition-all duration-500"
+                            style={{ width: `${importance * 100}%` }}
+                          ></div>
+                        </div>
                       </div>
-                      <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className="bg-indigo-500 h-1.5 rounded-full transition-all duration-500"
-                          style={{ width: `${feat.importance * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
             </div>
           </div>
         </div>

@@ -3,9 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 
 export default async function Home() {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("fairrentpredictor_data_status")
-    .select("*");
+  const { data } = await supabase.from("rent_features_agg").select("*");
 
   return (
     <main className="flex flex-col min-h-dvh text-white w-full justify-center p-2">

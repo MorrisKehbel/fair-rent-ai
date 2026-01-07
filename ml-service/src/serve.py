@@ -65,7 +65,7 @@ class RentRequest(BaseModel):
     # lng: Optional[float] = None
     year_constructed: Optional[int] = None
 
-    # city: Optional[str] = None
+    city: Optional[str] = None
     zip_code: str
     # region: Optional[str] = None
 
@@ -98,7 +98,7 @@ def predict(request: RentRequest):
             # 'lng': [request.lng or 0],
             'year_constructed': [request.year_constructed or 1996],
 
-            # 'city': [request.city or "unknown"],
+            'city': [request.city or "unknown"],
             'zip_code': [str(request.zip_code)],
             # 'region': [request.region or "unknown"],
 
@@ -111,7 +111,7 @@ def predict(request: RentRequest):
             # 'has_parking': [1 if request.has_parking else 0],
         })
 
-        print(data_for_prediction.to_string())
+        # print(data_for_prediction.to_string())
 
         prediction = model.predict(data_for_prediction)
         return {"estimated_rent_cold": round(prediction[0], 2)}

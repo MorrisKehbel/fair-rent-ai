@@ -39,24 +39,30 @@ export type Database = {
   };
   public: {
     Tables: {
-      fairrentpredictor_data_status: {
+      rent_features_agg: {
         Row: {
           created_at: string | null;
           status: string | null;
           updated_at: string | null;
           zip_code: string;
+          city: string;
+          regio: string;
         };
         Insert: {
           created_at?: string | null;
           status?: string | null;
           updated_at?: string | null;
           zip_code: string;
+          city?: string;
+          regio?: string;
         };
         Update: {
           created_at?: string | null;
           status?: string | null;
           updated_at?: string | null;
           zip_code?: string;
+          city?: string;
+          regio?: string;
         };
         Relationships: [];
       };
