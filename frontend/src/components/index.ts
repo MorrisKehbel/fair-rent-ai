@@ -1,6 +1,4 @@
-import { FormWindow } from "./FormWindow";
-import { FormFields } from "./FormFields";
-import { AddCity } from "./AddCity";
-import { InfoPopup } from "./InfoPopup";
-
-export { FormWindow, FormFields, AddCity, InfoPopup };
+export { FormWindow } from "./FormWindow";
+export { FormFields } from "./FormFields";
+export { AddCity } from "./AddCity";
+export { InfoPopup } from "./InfoPopup";
