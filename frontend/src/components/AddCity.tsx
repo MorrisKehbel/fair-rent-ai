@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { Database } from "../types/supabase";
+import { ChangeEvent, FormEvent, useState } from "react";
+import { Database } from "@/types/supabase";
+import { addCityAction } from "@/app/actions/addCity";
+import { TextField } from "./ui";
+import {
+  ZIP_CODE_LENGTH,
+  MIN_CITY_NAME_LENGTH,
+  UPDATE_COOLDOWN_DAYS,
+  ERROR_MESSAGES,
+} from "@/constants/form";
 
 type StatusRow = Database["public"]["Tables"]["rent_features_agg"]["Row"];
 
-interface FormFieldsProps {
+interface AddCityProps {
   setCityWindowOpen: (value: boolean | ((prev: boolean) => boolean)) => void;
   setError: (value: string | null) => void;
   setResult: (value: string | null) => void;
@@ -22,56 +30,47 @@ export const AddCity = ({
   setResult,
   setError,
   data,
-}: FormFieldsProps) => {
+}: AddCityProps) => {
   const [formData, setFormData] = useState({
     zip_code: "",
     city_name: "",
   });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
+    // only numbers
     if (name === "zip_code") {
       const cleanPlz = value.replace(/\D/g, "");
-
-      if (cleanPlz.length <= 5) {
-        setFormData((prev) => ({
-          ...prev,
-          zip_code: cleanPlz,
-        }));
+      if (cleanPlz.length <= ZIP_CODE_LENGTH) {
+        setFormData((prev) => ({ ...prev, zip_code: cleanPlz }));
       }
+      return;
     }
 
+    // only letters and spaces/hyphens
     if (name === "city_name") {
       const cleanCity = value.replace(/[^a-zA-ZäöüÄÖÜß\s-]/g, "");
-      setFormData((prev) => ({
-        ...prev,
-        city_name: cleanCity,
-      }));
+      setFormData((prev) => ({ ...prev, city_name: cleanCity }));
     }
   };
 
-  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setError(null);
     setResult(null);
 
     // validation
     const newErrors: FormErrors = {};
 
-    if (
-      !formData.zip_code ||
-      formData.zip_code.length < 5 ||
-      formData.zip_code.length > 5
-    ) {
-      newErrors.zip_code = "PLZ muss 5-stellig sein.";
+    if (formData.zip_code.length !== ZIP_CODE_LENGTH) {
+      newErrors.zip_code = ERROR_MESSAGES.ZIP_CODE_LENGTH;
     }
 
-    if (!formData.city_name || formData.city_name.length < 3) {
-      newErrors.city_name = "Stadtname muss mindestens 3 Zeichen lang sein.";
+    if (formData.city_name.length < MIN_CITY_NAME_LENGTH) {
+      newErrors.city_name = ERROR_MESSAGES.CITY_NAME_MIN;
     }
 
     setFormErrors(newErrors);
@@ -81,6 +80,7 @@ export const AddCity = ({
       return;
     }
 
+    // check if zip is already being processed
     const filteredData =
       formData.zip_code === ""
         ? data
@@ -88,19 +88,19 @@ export const AddCity = ({
 
     if (filteredData?.[0]?.status && filteredData?.[0]?.status !== "open") {
       setError(
-        `Wohnungen aus${formData.zip_code}] werden gerade aktualisiert.`
+        `Wohnungen aus ${formData.zip_code} werden gerade aktualisiert.`
       );
       return;
     }
 
+    // check rate limiting
     const lastUpdate = new Date(filteredData?.[0]?.updated_at || 0);
     const now = new Date();
     const diffInMs = now.getTime() - lastUpdate.getTime();
     const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
 
-    if (filteredData?.[0]?.updated_at && diffInDays < 7) {
-      const remainingDays = 7 - diffInDays;
-      const daysToWait = Math.ceil(remainingDays);
+    if (filteredData?.[0]?.updated_at && diffInDays < UPDATE_COOLDOWN_DAYS) {
+      const daysToWait = Math.ceil(UPDATE_COOLDOWN_DAYS - diffInDays);
       const dayWord = daysToWait === 1 ? "Tag" : "Tage";
 
       setError(
@@ -111,53 +111,28 @@ export const AddCity = ({
 
     setLoading(true);
 
-    const payload = {
-      plz: formData.zip_code,
-      cityName: formData.city_name.trim(),
-    };
-
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_MAKE_HOOK_URL}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-make-apikey": process.env.NEXT_PUBLIC_MAKE_API_KEY || "",
-        },
-        body: JSON.stringify(payload),
+      const result = await addCityAction({
+        plz: formData.zip_code,
+        cityName: formData.city_name.trim(),
       });
 
-      const contentType = response.headers.get("content-type");
-
-      let data;
-
-      if (contentType?.includes("application/json")) {
-        data = await response.json();
-      } else {
-        data = await response.text();
-      }
-
-      if (!response.ok) {
-        let errorMessage = "Unbekannter Fehler";
-
-        if (typeof data === "string") {
-          errorMessage = data;
-        } else if (typeof data === "object" && data !== null) {
-          errorMessage = data.message || data.error || JSON.stringify(data);
-        }
-        throw new Error(errorMessage);
+      if (!result.success) {
+        setError(result.error || "Stadt konnte nicht hinzugefügt werden.");
+        return;
       }
 
       setResult(
-        ` ${data?.data?.name} aus ${data?.data?.federalState} wurde gefunden und wird aktuell hinzugefügt. (ca. 5-10 Minuten)`
+        `${result.data?.name} aus ${result.data?.federalState} wurde gefunden und wird aktuell hinzugefügt. (ca. 5-10 Minuten)`
       );
 
-      setFormData({
-        zip_code: "",
-        city_name: "",
-      });
+      setFormData({ zip_code: "", city_name: "" });
     } catch (error) {
-      const message = (error as Error).message;
-      setError(message || "Stadt konnte nicht hinzugefügt werden.");
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Stadt konnte nicht hinzugefügt werden.";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -168,61 +143,32 @@ export const AddCity = ({
       onSubmit={onSubmit}
       className="flex flex-col gap-4 justify-between h-full mt-4 md:mt-0"
     >
-      <div className="flex flex-col gap-3">
-        <label
-          htmlFor="zip_code_input"
-          className="flex flex-col justify-between"
-        >
-          <div className="flex flex-wrap justify-between items-baseline h-full">
-            <span className="text-sm md:text-base font-semibold">
-              Postleitzahl
-            </span>
-            <span className="text-red-600 text-[10px] md:text-xs whitespace-nowrap mt-auto">
-              {formErrors?.zip_code}
-            </span>
-          </div>
-          <input
-            name="zip_code"
-            id="zip_code_input"
-            type="text"
-            inputMode="numeric"
-            value={formData.zip_code}
-            onChange={handleChange}
-            className={`mt-1 w-full rounded bg-gray-600/10 shadow-inner border p-2 focus:outline focus:outline-blue-600 select-non border-gray-600/50 ${
-              formErrors.zip_code ? "outline outline-red-600/80" : ""
-            }`}
-          />
-        </label>
-        <label
-          htmlFor="city_name_input"
-          className="flex flex-col justify-between"
-        >
-          <div className="flex flex-wrap justify-between items-baseline h-full">
-            <span className="text-sm md:text-base font-semibold">
-              Stadtname
-            </span>
-            <span className="text-red-600 text-[10px] md:text-xs whitespace-nowrap mt-auto">
-              {formErrors?.city_name}
-            </span>
-          </div>
-          <input
-            name="city_name"
-            id="city_name_input"
-            type="text"
-            inputMode="text"
-            value={formData.city_name}
-            onChange={handleChange}
-            className={`mt-1 w-full rounded bg-gray-600/10 shadow-inner border p-2 focus:outline focus:outline-blue-600 select-non border-gray-600/50 ${
-              formErrors.city_name ? "outline outline-red-600/80" : ""
-            }`}
-          />
-        </label>
+      <div className="flex flex-col gap-4">
+        <TextField
+          id="add_zip_code_input"
+          name="zip_code"
+          label="Postleitzahl"
+          value={formData.zip_code}
+          onChange={handleChange}
+          inputMode="numeric"
+          error={formErrors.zip_code}
+          fullWidth
+        />
+        <TextField
+          id="city_name_input"
+          name="city_name"
+          label="Stadtname"
+          value={formData.city_name}
+          onChange={handleChange}
+          error={formErrors.city_name}
+          fullWidth
+        />
       </div>
       <div className="flex gap-4">
         <button
           type="submit"
           disabled={loading}
-          className="border border-gray-300 w-full font-semibold py-2 px-4 rounded hover:border hover:border-blue-600 focus:outline-2 focus:outline-blue-600 cursor-pointer disabled:opacity-50"
+          className="w-full cursor-pointer rounded border border-gray-300 px-4 py-2 font-semibold transition hover:border-blue-600 focus:border-blue-600 focus:ring-blue-600 focus:ring-1 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? "Laden..." : "Hinzufügen"}
         </button>
@@ -233,7 +179,7 @@ export const AddCity = ({
             setResult(null);
             setError(null);
           }}
-          className="border w-full border-gray-300 font-semibold py-2 px-4 rounded hover:border hover:border-blue-600 focus:outline-2 focus:outline-blue-600 cursor-pointer disabled:opacity-50"
+          className="w-full cursor-pointer rounded border border-gray-300 px-4 py-2 font-semibold transition hover:border-blue-600 focus:border-blue-600 focus:ring-blue-600 focus:ring-1"
         >
           Zurück
         </button>

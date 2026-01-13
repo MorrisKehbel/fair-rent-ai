@@ -1,9 +1,14 @@
 "use client";
 
-import { FormEvent, useState, useRef, useEffect } from "react";
-import { Database } from "../types/supabase";
+import { FormEvent, useMemo, useState, useRef, useCallback } from "react";
+import { Database } from "@/types/supabase";
+import { useFormValidation } from "@/hooks/useFormValidation";
+import { Checkbox, TextField, Autocomplete } from "./ui";
+import { ERROR_MESSAGES } from "@/constants/form";
 
 type StatusRow = Database["public"]["Tables"]["rent_features_agg"]["Row"];
+
+const formatDisplayName = (value: string) => value.replace(/_/g, " ").trim();
 
 interface FormFieldsProps {
   advancedMode: boolean;
@@ -13,13 +18,6 @@ interface FormFieldsProps {
   data: StatusRow[] | null;
 }
 
-interface FormErrors {
-  size?: string;
-  rooms?: string;
-  zip_code?: string;
-  year_constructed?: string;
-}
-
 export const FormFields = ({
   advancedMode,
   setError,
@@ -27,76 +25,158 @@ export const FormFields = ({
   setCityWindowOpen,
   data,
 }: FormFieldsProps) => {
-  const ZipWrapperRef = useRef<HTMLDivElement>(null);
-  const CityWrapperRef = useRef<HTMLDivElement>(null);
-  const RegionWrapperRef = useRef<HTMLDivElement>(null);
-  const [zipDropdownOpen, setZipDropdownOpen] = useState(false);
-  const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
-  const [regionDropdownOpen, setRegionDropdownOpen] = useState(false);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [formErrors, setFormErrors] = useState<FormErrors>({});
-  const [formData, setFormData] = useState({
-    size: "",
-    rooms: "",
-    city: "",
-    region: "",
-    zip_code: "",
-    year_constructed: "",
-    has_kitchen: false,
-    has_elevator: false,
-    has_garden: false,
-    has_balcony: false,
-    has_is_new_building: false,
-    has_parking: false,
-    has_cellar: false,
-  });
+  const [loading, setLoading] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const { formData, formErrors, handleChange, validateForm, updateFormData } =
+    useFormValidation({ data });
 
+  // Filter active data (exclude running status)
+  const activeData = useMemo(
+    () => data?.filter((item) => item.status !== "running") ?? [],
+    [data]
+  );
+
+  // Memoized ZIP code options
+  const zipOptions = useMemo(() => {
+    const filtered = activeData.filter((item) => {
+      if (formData.city) {
+        return (
+          formatDisplayName(item.city) === formData.city &&
+          item.zip_code.startsWith(formData.zip_code)
+        );
+      }
+      return item.zip_code.startsWith(formData.zip_code);
+    });
+
+    return filtered
+      .slice()
+      .sort((a, b) => parseInt(a.zip_code) - parseInt(b.zip_code))
+      .map((item) => ({
+        value: item.zip_code,
+        label: item.zip_code,
+        city: formatDisplayName(item.city),
+      }));
+  }, [activeData, formData.city, formData.zip_code]);
+
+  // Memoized city options
+  const cityOptions = useMemo(() => {
+    const filtered = activeData
+      .filter((item) => {
+        const cityName = formatDisplayName(item.city);
+        if (formData.zip_code) {
+          return (
+            item.zip_code.startsWith(formData.zip_code) &&
+            cityName.toLowerCase().includes(formData.city.toLowerCase())
+          );
+        }
+        return cityName.toLowerCase().includes(formData.city.toLowerCase());
+      })
+      .filter(
+        (item, index, self) =>
+          index ===
+          self.findIndex(
+            (t) =>
+              formatDisplayName(t.city).toLowerCase() ===
+              formatDisplayName(item.city).toLowerCase()
+          )
+      )
+      .sort((a, b) =>
+        formatDisplayName(a.city).localeCompare(formatDisplayName(b.city))
+      );
+
+    return filtered.map((item) => ({
+      value: formatDisplayName(item.city),
+      label: formatDisplayName(item.city),
+    }));
+  }, [activeData, formData.zip_code, formData.city]);
+
+  // Memoized region options
+  const regionOptions = useMemo(() => {
+    const regions = new Set<string>();
+
+    activeData
+      .filter((item) => {
+        const zipMatch = formData.zip_code
+          ? item.zip_code.startsWith(formData.zip_code)
+          : true;
+        const cityMatch = formData.city
+          ? formatDisplayName(item.city).toLowerCase() ===
+            formData.city.toLowerCase()
+          : true;
+        return zipMatch && cityMatch;
+      })
+      .forEach((item) => {
+        (item.regio ?? "")
+          .split(",")
+          .map((r) => formatDisplayName(r.trim()))
+          .filter((r) => r !== "")
+          .forEach((r) => regions.add(r));
+      });
+
+    return Array.from(regions)
+      .filter((region) =>
+        formData.region === ""
+          ? true
+          : region.toLowerCase().includes(formData.region.toLowerCase())
+      )
+      .sort((a, b) => a.localeCompare(b))
+      .map((region) => ({
+        value: region,
+        label: region,
+      }));
+  }, [activeData, formData.zip_code, formData.city, formData.region]);
+
+  const handleZipSelect = useCallback(
+    (
+      value: string,
+      option: { value: string; label: string; city?: string }
+    ) => {
+      updateFormData({
+        zip_code: value,
+        city: (option as { city?: string }).city || formData.city,
+      });
+    },
+    [updateFormData, formData.city]
+  );
+
+  const handleCitySelect = useCallback(
+    (value: string) => {
+      updateFormData({ city: value });
+    },
+    [updateFormData]
+  );
+
+  const handleRegionSelect = useCallback(
+    (value: string) => {
+      const matchingItem = activeData.find(
+        (d) =>
+          (d.regio ?? "")
+            .split(",")
+            .map((r) => formatDisplayName(r.trim()))
+            .includes(value) &&
+          (formData.city ? formatDisplayName(d.city) === formData.city : true)
+      );
+
+      updateFormData({
+        region: value,
+        zip_code: matchingItem?.zip_code || "",
+        city: matchingItem ? formatDisplayName(matchingItem.city) : "",
+      });
+    },
+    [activeData, formData.city, updateFormData]
+  );
+
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setError(null);
     setResult(null);
 
-    const newErrors: FormErrors = {};
+    if (!validateForm()) return;
 
-    // validation
-    if (!formData.size || parseInt(formData.size) < 10) {
-      newErrors.size = "Größe muss mind. 10 m² sein.";
-    }
-
-    if (!formData.rooms || parseInt(formData.rooms) < 1) {
-      newErrors.rooms = "Mindestens 1 Zimmer erforderlich.";
-    }
-
-    if (
-      !formData.zip_code ||
-      formData.zip_code.length < 5 ||
-      formData.zip_code.length > 5
-    ) {
-      newErrors.zip_code = "PLZ muss 5-stellig sein.";
-    }
-
-    const zipCheck = data?.some((item) => item.zip_code === formData.zip_code);
-    if (!zipCheck && formData.zip_code.length === 5) {
-      newErrors.zip_code = "Noch keine Trainingsdaten.";
-    }
-
-    // const currentYear = new Date().getFullYear();
-    // const inputYear = parseInt(formData.year_constructed);
-    // if (
-    //   !formData.year_constructed ||
-    //   inputYear <= 1600 ||
-    //   inputYear > currentYear
-    // ) {
-    //   newErrors.year_constructed = "Bitte ein gültiges Baujahr angeben.";
-    // }
-
-    setFormErrors(newErrors);
-
-    if (Object.keys(newErrors).length > 0) {
-      // console.log("Validierung fehlgeschlagen:", newErrors);
-      return;
-    }
+    // Cancel any pending request
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
 
     setLoading(true);
 
@@ -106,8 +186,8 @@ export const FormFields = ({
     const payload = {
       size: parseFloat(formData.size.replace(",", ".")),
       rooms: parseFloat(formData.rooms.replace(",", ".")),
-      year_constructed: parseInt(formData.year_constructed),
-      city: city,
+      year_constructed: parseInt(formData.year_constructed) || 0,
+      city,
       zip_code: formData.zip_code,
       region: formData.region,
       elevator: formData.has_elevator,
@@ -116,7 +196,6 @@ export const FormFields = ({
       balcony_terrace: formData.has_balcony,
       cellar: formData.has_cellar,
       is_new_building: formData.has_is_new_building,
-      // has_parking: formData.has_parking,
     };
 
     try {
@@ -124,696 +203,179 @@ export const FormFields = ({
         `${process.env.NEXT_PUBLIC_API_URL}/predict`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
+          signal: abortControllerRef.current.signal,
         }
       );
 
       if (!response.ok) {
-        throw new Error("Fehler bei der Anfrage ans Backend");
+        throw new Error(ERROR_MESSAGES.BACKEND_ERROR);
       }
 
-      const data = await response.json();
-      setResult(`Empfohlene Kaltmiete: ${data.estimated_rent_cold}€`);
+      const result = await response.json();
+      setResult(`Empfohlene Kaltmiete: ${result.estimated_rent_cold}€`);
     } catch (error) {
-      setError(
-        "Preis konnte nicht berechnet werden. Bitte versuche es später erneut."
-      );
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setError(ERROR_MESSAGES.FETCH_ERROR);
       console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-
-    // Checkboxen unverändert
-    if (type === "checkbox") {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: checked,
-      }));
-      return;
-    }
-
-    // Numerische Felder wie vorher
-    type FieldConfig = {
-      maxInt: number;
-      maxDec: number;
-    };
-
-    const fieldRules: Record<string, FieldConfig> = {
-      size: { maxInt: 3, maxDec: 2 },
-      rooms: { maxInt: 2, maxDec: 1 },
-      zip_code: { maxInt: 5, maxDec: 0 },
-      year_constructed: { maxInt: 4, maxDec: 0 },
-    };
-
-    const rules = fieldRules[name];
-
-    if (rules) {
-      let cleanValue = value;
-
-      if (rules.maxDec > 0) {
-        cleanValue = cleanValue.replace(/[^0-9,]/g, "");
-        const commaCount = (cleanValue.match(/,/g) || []).length;
-        if (commaCount > 1) return;
-      } else {
-        cleanValue = cleanValue.replace(/\D/g, "");
-      }
-
-      if (cleanValue.includes(",")) {
-        const parts = cleanValue.split(",");
-        const integerPart = parts[0];
-        const decimalPart = parts[1];
-
-        if (integerPart.length > rules.maxInt) return;
-        if (decimalPart.length > rules.maxDec) return;
-      } else {
-        if (cleanValue.length > rules.maxInt) return;
-      }
-
-      setFormData((prev) => ({
-        ...prev,
-        [name]: cleanValue,
-      }));
-      return;
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const activeData = data?.filter((item) => item.status !== "running");
-
-  // PLZ Dropdown
-  const filteredZipData = activeData?.filter((item) => {
-    if (formData.city) {
-      return (
-        item.city === formData.city &&
-        item.zip_code.startsWith(formData.zip_code)
-      );
-    }
-    return item.zip_code.startsWith(formData.zip_code);
-  });
-
-  const sortedZipData = filteredZipData?.slice().sort((a, b) => {
-    return parseInt(a.zip_code) - parseInt(b.zip_code);
-  });
-
-  // City Dropdown
-  const sortedCityData = activeData
-    ?.filter((item) => {
-      // Wenn eine PLZ gesetzt ist, nur Städte passend zu dieser PLZ anzeigen
-      if (formData.zip_code) {
-        return (
-          item.zip_code.startsWith(formData.zip_code) &&
-          item.city.toLowerCase().includes(formData.city.toLowerCase())
-        );
-      }
-      // sonst nur nach eingegebener Stadt filtern
-      return item.city.toLowerCase().includes(formData.city.toLowerCase());
-    })
-    // nur unique Städte behalten
-    .filter(
-      (item, index, self) =>
-        index === self.findIndex((t) => t.city === item.city)
-    )
-    .sort((a, b) => a.city.localeCompare(b.city));
-
-  // activeData kann undefined sein
-  const activeDataSafe = activeData ?? [];
-
-  // Alle Regionen aus den passenden Daten extrahieren
-  const sortedRegionData = Array.from(
-    new Set(
-      activeDataSafe
-        ?.filter((item) => {
-          const zipMatch = formData.zip_code
-            ? item.zip_code.startsWith(formData.zip_code)
-            : true;
-          const cityMatch = formData.city
-            ? item.city.toLowerCase() === formData.city.toLowerCase()
-            : true;
-          return zipMatch && cityMatch;
-        })
-        .flatMap((item) =>
-          (item.regio ?? "")
-            .split(",")
-            .map((r) => r.trim())
-            .filter((r) => r !== "")
-        ) || []
-    )
-  )
-    .filter((region) =>
-      formData.region === ""
-        ? true
-        : region.toLowerCase().includes(formData.region.toLowerCase())
-    )
-    .sort((a, b) => a.localeCompare(b));
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        ZipWrapperRef.current &&
-        !ZipWrapperRef.current.contains(event.target as Node)
-      ) {
-        setZipDropdownOpen(false);
-      }
-      if (
-        CityWrapperRef.current &&
-        !CityWrapperRef.current.contains(event.target as Node)
-      ) {
-        setCityDropdownOpen(false);
-      }
-      if (
-        RegionWrapperRef.current &&
-        !RegionWrapperRef.current.contains(event.target as Node)
-      ) {
-        setRegionDropdownOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [ZipWrapperRef, CityWrapperRef, RegionWrapperRef]);
-
   return (
     <form
       onSubmit={onSubmit}
-      className="flex flex-col justify-between h-full mt-4 md:mt-0"
+      className="mt-2 flex h-full flex-col justify-between md:mt-0"
     >
-      <div className={`w-full grid gap-4 content-start grid-cols-2`}>
-        <label
-          htmlFor="size_input"
-          className={`flex flex-col justify-between ${
-            advancedMode ? "col-span-1" : "col-span-2"
-          }`}
-        >
-          <div className="flex flex-wrap justify-between items-baseline h-full">
-            <span className="text-sm md:text-base font-semibold">
-              Wohnfläche (m²)
-            </span>
-            <span className="text-red-600 text-[10px] md:text-xs whitespace-nowrap mt-auto">
-              {formErrors?.size}
-            </span>
-          </div>
-          <input
-            name="size"
-            id="size_input"
-            type="text"
-            inputMode="numeric"
-            value={formData.size}
-            onChange={handleChange}
-            className={`mt-1 w-full rounded bg-gray-600/10 border-gray-600/50 ${
-              formErrors.size ? "outline outline-red-600/80" : ""
-            }  shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
-            placeholder="60"
-          />
-        </label>
-        <label
-          htmlFor="rooms_input"
-          className={`flex flex-col justify-between ${
-            advancedMode ? "col-span-1" : "col-span-2"
-          }`}
-        >
-          <div className="flex flex-wrap justify-between items-baseline h-full">
-            <span className="text-sm md:text-base font-semibold">Zimmer</span>
-            <span className="text-red-600 text-[10px] md:text-xs whitespace-nowrap mt-auto">
-              {formErrors?.rooms}
-            </span>
-          </div>
+      <div className="grid w-full grid-cols-2 content-start gap-4">
+        {/* Size Field */}
+        <TextField
+          id="size_input"
+          name="size"
+          label="Wohnfläche (m²)"
+          value={formData.size}
+          onChange={handleChange}
+          placeholder="60"
+          inputMode="decimal"
+          error={formErrors.size}
+          fullWidth={!advancedMode}
+        />
 
-          <input
-            name="rooms"
-            id="rooms_input"
-            type="text"
-            inputMode="numeric"
-            value={formData.rooms}
-            onChange={handleChange}
-            className={`mt-1 w-full rounded bg-gray-600/10 border-gray-600/50 ${
-              formErrors.rooms ? "outline outline-red-600/80" : ""
-            }  shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
-            placeholder="2"
-          />
-        </label>
+        {/* Rooms Field */}
+        <TextField
+          id="rooms_input"
+          name="rooms"
+          label="Zimmer"
+          value={formData.rooms}
+          onChange={handleChange}
+          placeholder="2"
+          inputMode="decimal"
+          error={formErrors.rooms}
+          fullWidth={!advancedMode}
+        />
 
-        <div
-          ref={ZipWrapperRef}
-          className={`relative w-full ${
-            advancedMode ? "col-span-1" : "col-span-2"
-          }`}
-        >
-          <label
-            htmlFor="zip_code_input"
-            className="flex flex-col justify-between"
-          >
-            <div className="flex flex-wrap justify-between items-baseline h-full">
-              <div className="flex flex-wrap items-baseline">
-                <span className="text-sm md:text-base font-semibold mr-2 md:mr-0">
-                  Postleitzahl
-                </span>
-                <button
-                  className="md:px-2 text-[10px] md:text-xs text-gray-400 hover:text-blue-600 cursor-pointer whitespace-nowrap"
-                  onClick={() => setCityWindowOpen(true)}
-                >
-                  Nicht vorhanden?
-                </button>
-              </div>
-              <span className="text-red-600 text-[10px] md:text-xs whitespace-nowrap mt-auto">
-                {formErrors?.zip_code}
-              </span>
-            </div>
+        {/* City Autocomplete */}
+        <Autocomplete
+          id="city_input"
+          name="city"
+          label="Stadt"
+          value={formData.city}
+          options={cityOptions}
+          onChange={handleChange}
+          onSelect={handleCitySelect}
+          placeholder="Leipzig"
+          error={formErrors.city}
+          emptyMessage="Keine Städte gefunden"
+          labelAction={
+            <button
+              type="button"
+              className="cursor-pointer whitespace-nowrap text-[10px] text-gray-400 hover:text-blue-600 focus:text-blue-600 focus:underline underline-offset-2 transition-colors select-none md:px-2 md:text-xs"
+              onClick={() => setCityWindowOpen(true)}
+            >
+              Nicht vorhanden?
+            </button>
+          }
+        />
 
-            <input
-              name="zip_code"
-              id="zip_code_input"
-              type="text"
-              inputMode="numeric"
-              value={formData.zip_code}
-              onFocus={() => setZipDropdownOpen(true)}
-              onChange={(e) => {
-                handleChange(e);
-                setZipDropdownOpen(true);
-              }}
-              placeholder="04103"
-              className={`mt-1 w-full rounded bg-gray-600/10 border-gray-600/50 ${
-                formErrors.zip_code ? "outline outline-red-600/80" : ""
-              }  shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
-            />
-          </label>
-
-          {zipDropdownOpen && filteredZipData && filteredZipData.length > 0 && (
-            <ul className="absolute z-10 w-full mt-1 max-h-60 overflow-auto bg-gray-100 text-black rounded shadow-lg border border-gray-200">
-              {sortedZipData?.map((item, index) => (
-                <li
-                  key={index}
-                  className="p-2 hover:bg-blue-100 cursor-pointer transition-colors"
-                  onClick={() => {
-                    setFormData((prev) => ({
-                      ...prev,
-                      zip_code: item.zip_code,
-                      city: item.city,
-                    }));
-                    setZipDropdownOpen(false);
-                  }}
-                >
-                  {item.zip_code}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {zipDropdownOpen && filteredZipData?.length === 0 && (
-            <div className="absolute z-10 w-full mt-1 p-2 bg-white rounded shadow text-gray-500">
-              Keine PLZ gefunden.
-            </div>
-          )}
-        </div>
+        {/* Advanced Mode Fields */}
         {advancedMode && (
           <>
-            <label
-              htmlFor="year_constructed_input"
-              className="flex flex-col justify-between"
-            >
-              <div className="flex flex-wrap justify-between items-baseline h-full">
-                <span className="text-sm md:text-base font-semibold">
-                  Baujahr
-                </span>
-                <span className="text-red-600 text-[10px] md:text-xs whitespace-nowrap mt-auto">
-                  {formErrors?.year_constructed}
-                </span>
-              </div>
-              <input
-                name="year_constructed"
-                id="year_constructed_input"
-                type="text"
-                inputMode="numeric"
-                minLength={4}
-                value={formData.year_constructed}
-                onChange={handleChange}
-                placeholder="1990"
-                className={`mt-1 w-full rounded bg-gray-600/10 border-gray-600/50 ${
-                  formErrors.year_constructed
-                    ? "outline outline-red-600/80"
-                    : ""
-                }  shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
-              />
-            </label>
-            <div
-              ref={CityWrapperRef}
-              className={`relative w-full ${
-                advancedMode ? "col-span-1" : "col-span-2"
-              }`}
-            >
-              <label
-                htmlFor="city_input"
-                className="flex flex-col justify-between"
-              >
-                <div className="flex flex-wrap justify-between items-baseline h-full">
-                  <div className="flex flex-wrap items-baseline">
-                    <span className="text-sm md:text-base font-semibold mr-2 md:mr-0">
-                      Stadt
-                    </span>
-                  </div>
-                </div>
+            <TextField
+              id="year_constructed_input"
+              name="year_constructed"
+              label="Baujahr"
+              value={formData.year_constructed}
+              onChange={handleChange}
+              placeholder="1990"
+              inputMode="numeric"
+              error={formErrors.year_constructed}
+            />
 
-                <input
-                  name="city"
-                  id="city_input"
-                  type="text"
-                  inputMode="text"
-                  value={formData.city}
-                  onFocus={() => setCityDropdownOpen(true)}
-                  onChange={(e) => {
-                    handleChange(e);
-                    setCityDropdownOpen(true);
-                  }}
-                  placeholder="Leipzig"
-                  className={`mt-1 w-full rounded bg-gray-600/10 border-gray-600/50 shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
-                />
-              </label>
-
-              {cityDropdownOpen &&
-                sortedCityData &&
-                sortedCityData.length > 0 && (
-                  <ul className="absolute z-10 w-full mt-1 max-h-60 overflow-auto bg-gray-100 text-black rounded shadow-lg border border-gray-200">
-                    {sortedCityData?.map((item, index) => (
-                      <li
-                        key={index}
-                        className="p-2 hover:bg-blue-100 cursor-pointer transition-colors"
-                        onClick={() => {
-                          setFormData((prev) => ({
-                            ...prev,
-                            city: item.city,
-                          }));
-                          setCityDropdownOpen(false);
-                        }}
-                      >
-                        {item.city}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-              {cityDropdownOpen && sortedCityData?.length === 0 && (
-                <div className="absolute z-10 w-full mt-1 p-2 bg-white rounded shadow text-gray-500">
-                  Keine Städte gefunden
-                </div>
-              )}
-            </div>
-            <div
-              ref={RegionWrapperRef}
-              className={`relative w-full ${
-                advancedMode ? "col-span-1" : "col-span-2"
-              }`}
-            >
-              <label
-                htmlFor="region_input"
-                className="flex flex-col justify-between"
-              >
-                <div className="flex flex-wrap justify-between items-baseline h-full">
-                  <div className="flex flex-wrap items-baseline">
-                    <span className="text-sm md:text-base font-semibold mr-2 md:mr-0">
-                      Region/Bezirk
-                    </span>
-                  </div>
-                </div>
-
-                <input
-                  name="region"
-                  id="region_input"
-                  type="text"
-                  inputMode="text"
-                  value={formData.region}
-                  onFocus={() => setRegionDropdownOpen(true)}
-                  onChange={(e) => {
-                    handleChange(e);
-                    setRegionDropdownOpen(true);
-                  }}
-                  placeholder="Lindenau"
-                  className={`mt-1 w-full rounded bg-gray-600/10 border-gray-600/50 shadow-inner border p-2 focus:outline focus:outline-blue-600 select-none`}
-                />
-              </label>
-
-              {regionDropdownOpen &&
-                sortedRegionData &&
-                sortedRegionData.length > 0 && (
-                  <ul className="absolute z-10 w-full mt-1 max-h-60 overflow-auto bg-gray-100 text-black rounded shadow-lg border border-gray-200">
-                    {sortedRegionData?.map((item, index) => (
-                      <li
-                        key={index}
-                        className="p-2 hover:bg-blue-100 cursor-pointer transition-colors"
-                        onClick={() => {
-                          const matchingItem = activeDataSafe.find(
-                            (d) =>
-                              (d.regio ?? "")
-                                .split(",")
-                                .map((r) => r.trim())
-                                .includes(item) &&
-                              (formData.city ? d.city === formData.city : true)
-                          );
-
-                          setFormData((prev) => ({
-                            ...prev,
-                            region: item,
-                            zip_code: matchingItem?.zip_code || "",
-                            city: matchingItem?.city || "",
-                          }));
-
-                          setRegionDropdownOpen(false);
-                        }}
-                      >
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-              {regionDropdownOpen && sortedRegionData?.length === 0 && (
-                <div className="absolute z-10 w-full mt-1 p-2 bg-white rounded shadow text-gray-500">
-                  Keine Regionen gefunden
-                </div>
-              )}
-            </div>
+            <Autocomplete
+              id="zip_code_input"
+              name="zip_code"
+              label="Postleitzahl"
+              value={formData.zip_code}
+              options={zipOptions}
+              onChange={handleChange}
+              onSelect={handleZipSelect}
+              placeholder="04103"
+              inputMode="numeric"
+              error={formErrors.zip_code}
+              emptyMessage="Keine PLZ gefunden."
+              fullWidth={!advancedMode}
+            />
+            <Autocomplete
+              id="region_input"
+              name="region"
+              label="Region/Bezirk"
+              value={formData.region}
+              options={regionOptions}
+              onChange={handleChange}
+              onSelect={handleRegionSelect}
+              placeholder="Lindenau"
+              error={formErrors.region}
+              emptyMessage="Keine Regionen gefunden"
+            />
           </>
         )}
-        <div className="flex flex-col flex-wrap justify-between gap-2">
-          <div className="flex items-center justify-between w-full">
-            <label
-              htmlFor="custom-check-balcony"
-              className="text-sm md:text-base font-semibold"
-            >
-              Balkon/Terrasse:
-            </label>
-            <div className="relative flex items-center">
-              <input
-                name="has_balcony"
-                type="checkbox"
-                id="custom-check-balcony"
-                checked={formData.has_balcony}
-                onChange={handleChange}
-                className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-400 transition-all checked:border-blue-600 checked:bg-blue-600 hover:scale-105 shadow-sm"
-              />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-3.5 w-3.5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center justify-between w-full">
-            <label
-              htmlFor="custom-check-kitchen"
-              className="text-sm md:text-base font-semibold"
-            >
-              Einbauküche:
-            </label>
-            <div className="relative flex items-center">
-              <input
-                name="has_kitchen"
-                type="checkbox"
-                id="custom-check-kitchen"
-                checked={formData.has_kitchen}
-                onChange={handleChange}
-                className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-400 transition-all checked:border-blue-600 checked:bg-blue-600 hover:scale-105 shadow-sm"
-              />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-3.5 w-3.5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-          {advancedMode && (
-            <>
-              <div className="flex items-center justify-between w-full">
-                <label
-                  htmlFor="custom-check-cellar"
-                  className="text-sm md:text-base font-semibold"
-                >
-                  Keller:
-                </label>
-                <div className="relative flex items-center">
-                  <input
-                    name="has_cellar"
-                    type="checkbox"
-                    id="custom-check-cellar"
-                    checked={formData.has_cellar}
-                    onChange={handleChange}
-                    className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-400 transition-all checked:border-blue-600 checked:bg-blue-600 hover:scale-105 shadow-sm"
-                  />
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-3.5 w-3.5"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-        <div className="flex flex-wrap justify-between gap-2">
-          <div className="flex items-center justify-between w-full">
-            <label
-              htmlFor="custom-check-garden"
-              className="text-sm md:text-base font-semibold"
-            >
-              Garten/-mitnutzung
-            </label>
-            <div className="relative flex items-center">
-              <input
-                name="has_garden"
-                type="checkbox"
-                id="custom-check-garden"
-                checked={formData.has_garden}
-                onChange={handleChange}
-                className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-400 transition-all checked:border-blue-600 checked:bg-blue-600 hover:scale-105 shadow-sm"
-              />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-3.5 w-3.5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center justify-between w-full">
-            <label
-              htmlFor="custom-check-new"
-              className="text-sm md:text-base font-semibold"
-            >
-              Erstbezug/Renoviert:
-            </label>
-            <div className="relative flex items-center">
-              <input
-                name="has_is_new_building"
-                type="checkbox"
-                id="custom-check-new"
-                checked={formData.has_is_new_building}
-                onChange={handleChange}
-                className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-400 transition-all checked:border-blue-600 checked:bg-blue-600 hover:scale-105 shadow-sm"
-              />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-3.5 w-3.5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
 
-          {advancedMode && (
-            <>
-              {" "}
-              <div className="flex items-center justify-between w-full">
-                <label
-                  htmlFor="custom-check-elevator"
-                  className="text-sm md:text-base font-semibold"
-                >
-                  Personenaufzug:
-                </label>
-                <div className="relative flex items-center">
-                  <input
-                    name="has_elevator"
-                    type="checkbox"
-                    id="custom-check-elevator"
-                    checked={formData.has_elevator}
-                    onChange={handleChange}
-                    className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-400 transition-all checked:border-blue-600 checked:bg-blue-600 hover:scale-105 shadow-sm"
-                  />
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-3.5 w-3.5"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+        {/* Checkboxes */}
+
+        <Checkbox
+          id="custom-check-balcony"
+          name="has_balcony"
+          label="Balkon / Terrasse:"
+          checked={formData.has_balcony}
+          onChange={handleChange}
+        />
+        <Checkbox
+          id="custom-check-kitchen"
+          name="has_kitchen"
+          label="Einbauküche:"
+          checked={formData.has_kitchen}
+          onChange={handleChange}
+        />
+        <Checkbox
+          id="custom-check-garden"
+          name="has_garden"
+          label="Garten / -mitnutzung:"
+          checked={formData.has_garden}
+          onChange={handleChange}
+        />
+        <Checkbox
+          id="custom-check-new"
+          name="has_is_new_building"
+          label="Erstbezug / Renoviert:"
+          checked={formData.has_is_new_building}
+          onChange={handleChange}
+        />
+        {advancedMode && (
+          <>
+            <Checkbox
+              id="custom-check-elevator"
+              name="has_elevator"
+              label="Personenaufzug:"
+              checked={formData.has_elevator}
+              onChange={handleChange}
+            />
+            <Checkbox
+              id="custom-check-cellar"
+              name="has_cellar"
+              label="Keller:"
+              checked={formData.has_cellar}
+              onChange={handleChange}
+            />
+          </>
+        )}
       </div>
 
       <button
         type="submit"
         disabled={loading}
-        className="border border-gray-300 font-semibold py-2 px-4 rounded hover:border hover:border-blue-600 focus:outline-2 focus:outline-blue-600 cursor-pointer disabled:opacity-50"
+        className="cursor-pointer rounded border border-gray-300 px-4 py-2 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 hover:border-blue-600 focus:border-blue-600 focus:ring-blue-600 focus:ring-1"
       >
         {loading ? "Berechne..." : "Preis schätzen"}
       </button>
